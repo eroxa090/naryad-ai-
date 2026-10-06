@@ -269,9 +269,9 @@ async function main() {
     }
   }
   // внеплановые: (1) К-3 весит в 3 раза больше, в основном М-02
-  const base = 500
+  const base = 540
   for (let i = 0; i < base; i++) {
-    const e = weighted(equipment, (x: any) => (x.id === K3.id ? 3 * 2.2 : x.criticality === 3 ? 1.2 : 1))
+    const e = weighted(equipment, (x: any) => (x.id === K3.id ? 3.3 : 1))
     const fault = e.id === K3.id && rnd() < 0.7 ? 'М-02' : pick(FAULT_BY_TYPE[e.type])
     const emergency = rnd() < 0.45
     plans.push({
@@ -371,7 +371,21 @@ async function main() {
     }
   }
 
-  for (const p of plans) build(p)
+  // Случайные внеплановые наряды не должны выглядеть как «повторная поломка за 7 дней»:
+  // повторы остаются только у К-3 (закономерность 1) и после Иванова (закономерность 2, добавляются в extra).
+  const lastFault = new Map<string, number>()
+  for (const p of plans) {
+    if (p.type === 'emergency' && p.equipment.id !== K3.id && p.equipment.id !== KMD.id) {
+      const recent = (code: string) => (lastFault.get(`${p.equipment.id}|${code}`) ?? -Infinity) > p.created - 9 * 24 * H
+      if (recent(p.fault)) {
+        const alt = FAULT_BY_TYPE[p.equipment.type].filter((c) => !recent(c))
+        if (!alt.length) continue
+        p.fault = pick(alt)
+      }
+    }
+    lastFault.set(`${p.equipment.id}|${p.fault}`, p.created)
+    build(p)
+  }
   for (let i = 0; i < extra.length; i++) if (extra[i].created < now - 4 * H) build(extra[i])
 
   // немного отказов (часть необоснованных)
