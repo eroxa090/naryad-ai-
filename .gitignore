@@ -1,8 +1,10 @@
 node_modules/
 dist/
+dev-dist/
 .env
 .env.local
 .vercel/
 __pycache__/
 .venv/
 .DS_Store
+*.tsbuildinfo
