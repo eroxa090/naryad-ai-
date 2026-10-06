@@ -54,7 +54,7 @@ Enum-ы:
 - `order_status`: `issued` (выдан), `accepted` (принят), `queued` (в очереди), `in_progress` (в работе), `paused` (приостановлен), `rejected` (отклонён), `submitted` (исполнен, ждёт проверки), `needs_rework` (на доработке), `closed` (закрыт мастером), `cancelled` (отменён). Это 10 статусов. Просрочка хранится отдельным флагом `is_overdue`.
 - `order_type`: `planned`, `emergency`
 - `priority`: `emergency`, `high`, `normal`, `planned`
-- `role`: `master`, `worker`, `manager`, `admin`
+- `employee_role`: `master`, `worker`, `manager`, `admin`
 - `photo_kind`: `before`, `after`
 - `ai_verdict`: `accepted`, `accepted_with_notes`, `needs_rework`
 
@@ -74,13 +74,16 @@ Enum-ы:
 
 Представления (views):
 - `v_employee_status`: `employee_id, status ('free'|'busy'|'has_queue'|'off_shift'), current_order_id, queue_count`
-- `v_worker_rating`: `employee_id, period, quality, on_time_rate, rework_rate, complexity, unjustified_rejects, rating 0..100`
+- `v_worker_rating` (за 30 дней) и функция `worker_rating(p_from, p_to)` для любого периода: `employee_id, closed_count, quality, on_time_rate, rework_rate, complexity, unjustified_rejects, rating 0..100`
 
 Формула рейтинга:
 `35% качество + 25% в срок + 20% без возвратов и повторов за 7 дней + 15% сложность − 5% штраф за необоснованные отказы`
 
 Смена статусов — ТОЛЬКО через RPC `change_order_status(order_id, action, payload jsonb)`. Функция проверяет допустимость перехода, ставит временные метки и пишет `order_events`.
 Значения `action`: `accept`, `queue`, `reject`, `start`, `pause`, `resume`, `submit`, `rework`, `close`, `cancel`, `reassign`, `set_priority`.
+Вызов с фронта: `supabase.rpc('change_order_status', { p_order_id, p_action, p_payload })`. Для `reject` и `pause` обязателен `p_payload.reason`.
+Мастер меняет оценку ИИ: `supabase.rpc('master_override_review', { p_review_id, p_score, p_comment })`.
+Создание наряда: обычный `insert` в `orders` (разрешён мастеру; событие `create` пишется триггером), затем фронт вызывает `POST /api/orders/notify-new { order_id }`.
 Payload для `submit`: `{ work_done, fault_code, comment, materials:[{material_id, qty}] }`.
 
 Авторизация: Supabase Auth, email = `<login>@naryad.local`, пароль = 6-значный ПИН. Строка в `employees` связана через `auth_user_id`.
@@ -101,6 +104,7 @@ EXIF `taken_at` фронт читает ДО сжатия (сжатие стир
 Аналитика: `python analytics/run.py` считает аномалии и прогнозы и пишет строки в `ai_insights`. Фронт читает таблицу напрямую.
 
 ## Эндпоинты Человека 1
+- `POST /api/orders/notify-new { order_id }`: push исполнителю о новом наряде (Telegram с кнопками «Принять» и «В очередь», плюс запись в `notifications`).
 - `POST /api/cron/check-deadlines` (заголовок `x-cron-secret`): раз в минуту вызывается pg_cron. Делает напоминания за 30 минут, флаг просрочки, сообщения исполнителю и мастеру, эскалацию непринятых (10 минут, аварийные 3 минуты).
 - `POST /api/telegram/webhook`: бот. `/start <login>` привязывает chat_id. Вопросы мастера пересылает в `/api/ai/assistant`.
 - `api/_lib/notify.ts`: функция `notify(employee_id, order_id, kind, text)` пишет в `notifications` и шлёт в Telegram. Человек 3 может её импортировать.
@@ -119,3 +123,8 @@ EXIF `taken_at` фронт читает ДО сжатия (сжатие стир
 4. Ночная смена на участке обогащения: время реакции в 2 раза выше.
 
 Тестовые аккаунты: `master1`, `worker1`, `worker2`, `manager1`, ПИН у всех `111111`.
+
+## Код
+- Общие TS-типы: `shared/types.ts` (без импортов). В `api/**` относительные импорты пишем с расширением `.js` (Node ESM), например `import { admin } from '../_lib/supabase.js'`.
+- Готовые хелперы сервера: `api/_lib/supabase.ts` (`admin`), `api/_lib/auth.ts` (`requireEmployee`, `requireCronSecret`, `onlyPost`), `api/_lib/notify.ts` (`notify`), `api/_lib/telegram.ts` (`sendTelegram`).
+- Проверка перед PR: `npm run typecheck && npm run build`.
