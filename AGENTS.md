@@ -101,6 +101,8 @@ EXIF `taken_at` фронт читает ДО сжатия (сжатие стир
 | `/api/ai/shift-report` | `{ from, to, site_id? }` | `{ stats, summary }` |
 | `/api/ai/assistant` | `{ question }` | `{ answer }` |
 
+`/api/ai/assistant` также вызывается Telegram-ботом от сервера: без Bearer, с заголовком `x-internal-secret: <CRON_SECRET>` и полем `employee_id` в теле. Такой вызов нужно принимать.
+
 Аналитика: `python analytics/run.py` считает аномалии и прогнозы и пишет строки в `ai_insights`. Фронт читает таблицу напрямую.
 
 ## Эндпоинты Человека 1

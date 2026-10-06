@@ -12,3 +12,9 @@
 
 ## Деплой
 Vercel → Import Git Repository → добавить переменные из `.env.example` → Deploy.
+
+## Cron и Telegram (один раз после деплоя)
+1. В `supabase/migrations/002_cron.sql` замените `APP_URL` и `CRON_SECRET`, выполните в SQL Editor.
+2. Webhook бота:
+   `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<APP_URL>/api/telegram/webhook&secret_token=<CRON_SECRET>"`
+3. Каждый сотрудник пишет боту `/start <логин>`.
