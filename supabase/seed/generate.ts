@@ -177,6 +177,9 @@ const PAUSE_REASONS = ['Ждём запчасти со склада', 'Ждём 
 // ---------- main ----------
 async function wipe() {
   console.log('Очистка...')
+  const { error: resetErr } = await db.rpc('reset_demo')
+  if (resetErr) console.log('  reset_demo() недоступна (выполните 003_reset_demo.sql), чищу по таблицам')
+  else return wipeAuth()
   for (const t of ['notifications', 'ai_insights', 'ai_reviews', 'order_materials', 'order_photos', 'order_events', 'orders']) {
     await must(db.from(t).delete().gte('id', 0), `wipe ${t}`)
   }
@@ -185,6 +188,10 @@ async function wipe() {
   await must(db.from('sites').delete().gte('id', 0), 'wipe sites')
   await must(db.from('materials').delete().gte('id', 0), 'wipe materials')
   await must(db.from('fault_codes').delete().neq('code', ''), 'wipe fault_codes')
+  await wipeAuth()
+}
+
+async function wipeAuth() {
   for (let page = 1; ; page++) {
     const { data } = await db.auth.admin.listUsers({ page, perPage: 200 })
     const ours = (data?.users ?? []).filter((u) => u.email?.endsWith('@naryad.local'))

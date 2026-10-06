@@ -16,3 +16,13 @@ export async function sendTelegram(chatId: number, text: string, buttons?: Inlin
   })
   if (!res.ok) console.error('telegram send failed', res.status, await res.text())
 }
+
+export async function tg(method: string, body: Record<string, unknown>): Promise<void> {
+  if (!process.env.TELEGRAM_BOT_TOKEN) return
+  const res = await fetch(`${API()}/${method}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) console.error(`telegram ${method} failed`, res.status, await res.text())
+}
