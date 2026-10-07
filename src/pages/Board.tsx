@@ -116,6 +116,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
       (archive || !['closed', 'cancelled'].includes(o.status)) &&
       (!overdue || o.is_overdue),
   )
+  const onShift = data.statuses.filter(s => data.employees.some(e => e.id === s.employee_id && e.on_shift))
   const rating = data.ratings.find((r) => r.employee_id === me.id)
   const [now] = useState(() => new Date())
   const start = new Date(now)
@@ -161,7 +162,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
               ],
               [
                 'Свободных людей',
-                data.statuses.filter((s) => s.status === 'free').length,
+                onShift.filter((s) => s.status === 'free').length,
               ],
             ].map(([label, value]) => (
               <div className="panel" key={label}>
@@ -171,9 +172,9 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
             ))}
           </div>
           <details className="panel">
-            <summary>Люди на смене · {data.statuses.length}</summary>
+            <summary>Люди на смене · {onShift.length}</summary>
             <div className="people">
-              {data.statuses.map((s) => (
+              {onShift.map((s) => (
                 <div key={s.employee_id} className="person">
                   <span className={`dot ${s.status}`} />
                   <div>
