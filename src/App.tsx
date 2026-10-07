@@ -34,6 +34,9 @@ const PrintQR = lazy(() =>
 const Reports = lazy(() =>
   import('./pages/Reports').then((m) => ({ default: m.Reports })),
 )
+const AdminPage = lazy(() =>
+  import('./pages/Admin').then((m) => ({ default: m.AdminPage })),
+)
 const NotificationsPage = lazy(() =>
   import('./pages/Notifications').then((m) => ({
     default: m.NotificationsPage,
@@ -306,6 +309,12 @@ function Workspace({ session }: { session: Session }) {
             {t('Отчёты · ИИ')}
           </NavLink>
         )}
+        {me.role === 'admin' && (
+          <NavLink to="/admin">
+            <span className="ico" aria-hidden>⚙️</span>
+            {t('Справочники')}
+          </NavLink>
+        )}
         <NotificationsLink me={me} />
         {install && (
           <button
@@ -395,6 +404,16 @@ function Workspace({ session }: { session: Session }) {
               element={
                 master ? (
                   <CreateOrder data={data.data} me={me} />
+                ) : (
+                  <Navigate to="/orders" replace />
+                )
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                me.role === 'admin' ? (
+                  <AdminPage data={data.data} />
                 ) : (
                   <Navigate to="/orders" replace />
                 )
