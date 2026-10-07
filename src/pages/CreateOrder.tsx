@@ -1,5 +1,6 @@
 import { t } from '../lib/i18n'
 import { useRef, useState } from 'react'
+import { Camera } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Employee, OrderType, Priority, SuggestWorkerRes } from '../../shared/types'
 import { PRIORITY_LABEL } from '../../shared/types'
@@ -268,7 +269,9 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
           </select>
         </label>
         <label>
-          📷 {t('Фото до работ · до 5')}
+          <span>
+            <Camera aria-hidden size={20} /> {t('Фото до работ · до 5')}
+          </span>
           <input
             type="file"
             accept="image/*"

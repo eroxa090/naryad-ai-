@@ -955,6 +955,70 @@ button.big { font-family: var(--display); font-size: 1.45rem; text-transform: up
 .login .language-switch button[aria-pressed='true'] { background: var(--signal); color: var(--graphite); border-color: var(--graphite); }
 .login form button { width: 100%; min-height: 72px; font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .risk-grid button small, button small, .badge small { color: inherit; opacity: 1; }
+
+/* =====================================================================
+   Финальный проход (frontend-design · ui-ux-pro-max · web-design-guidelines · emil-design-eng):
+   - белый фон и настоящий чёрный вместо «кремового» и почти-чёрного (типичные признаки шаблона);
+   - заглавные — только в логотипе; смелость в одном месте: шапка с полосой и «табличка» оборудования;
+   - векторные иконки вместо эмодзи; табличные цифры; без задержки тапа;
+   - ощутимое нажатие (scale 0.97, 160 мс, сильный ease-out); hover только для мыши.
+   ===================================================================== */
+:root { --ink: #000; --tray: #eef1f3; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
+html { -webkit-tap-highlight-color: transparent; }
+body { background: #fff; background-image: none; color: var(--ink); }
+a, button, .button, input, select, textarea, summary, label { touch-action: manipulation; }
+h1, h2, h3 { text-wrap: balance; }
+h2, nav a, .eyebrow, .badge, button.big, .login form button, .column h2, header .brand { text-transform: none; }
+header .brand, .login .brand { text-transform: uppercase; }
+h2 { letter-spacing: 0; font-family: var(--body); font-weight: 800; font-size: 1.3rem; }
+.eyebrow { letter-spacing: 0.01em; font-family: var(--body); font-weight: 700; font-size: 0.95rem; }
+nav a { letter-spacing: 0; font-family: var(--body); font-weight: 800; }
+.badge { letter-spacing: 0; font-family: var(--body); font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+.badge::before { content: none !important; }
+.badge.type { background: #fff; color: var(--ink); border-color: var(--ink); }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; }
+button.big, .login form button { font-family: var(--body); font-weight: 800; font-size: 1.2rem; letter-spacing: 0; }
+.stats strong, .my-card .due, .badge, .column h2 small { font-variant-numeric: tabular-nums; }
+.column { background: var(--tray); border-color: #d3d8dc; }
+svg.ico, button svg, .button svg, .badge svg, .due svg, summary svg, label svg, .tg-banner svg { flex: none; vertical-align: -0.2em; }
+label > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* «табличка» оборудования — единственный акцентный приём для названий */
+.plate {
+  display: inline-block; font-family: var(--display); font-size: 1.55rem; line-height: 1.15; letter-spacing: 0.02em;
+  background: var(--graphite); color: #fff; padding: 6px 12px 7px; border-radius: 4px; margin: 6px 0;
+  border-left: 6px solid var(--signal);
+}
+.my-card .eq.plate { text-transform: none; font-size: 1.5rem; }
+.my-card .site { margin: 0 0 8px; color: var(--ink-2); font-weight: 600; }
+.my-card .due { display: inline-flex; align-items: center; gap: 6px; }
+.my-card.emergency { background: #fff; }
+.empty .big-ico { margin: 0 auto 8px; color: var(--go); }
+
+/* нажатие: мгновенный отклик, только transform (дёшево для GPU) */
+button, .button, .my-card, nav a, .risk-grid button, summary {
+  transition: transform 160ms var(--ease-out) !important;
+}
+button:active:not(:disabled), .button:active, .my-card:active, nav a:active, summary:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled), .button:hover { filter: brightness(1.1); }
+  .my-card:hover { border-color: var(--ink); }
+}
+/* меню «Профиль» раскрывается из угла кнопки */
+.profile[open] > div {
+  transform-origin: top right;
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out) !important;
+  @starting-style { opacity: 0; transform: scale(0.97); }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .button, .my-card, nav a, summary, .profile[open] > div { transition: none !important; transform: none !important; }
+}
+/* липкая нижняя панель не закрывает поле в фокусе */
+@media (max-width: 700px) { html { scroll-padding-bottom: 240px; } }
+footer { color: var(--ink-2); font-weight: 600; }
+.tg-banner > span { display: flex; gap: 10px; align-items: flex-start; }
+.tg-banner > span svg { margin-top: 3px; }
+.action-bar .more button { white-space: nowrap; font-size: 1rem; padding: 10px 8px; gap: 6px; }
 /* отчёты: таблицы и переключатель группировки */
 .segmented { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
 .segmented button { flex: 1 1 160px; }
@@ -972,8 +1036,8 @@ button.big { font-family: var(--display); font-size: 1.45rem; text-transform: up
 .split { height: 18px; min-width: 140px; border: 2px solid var(--ink); border-radius: 6px; background: repeating-linear-gradient(45deg, #fff, #fff 4px, #d8d8d8 4px, #d8d8d8 8px); overflow: hidden; margin-bottom: 4px; }
 .split span { display: block; height: 100%; background: var(--danger); }
 /* уведомления: колокольчик со счётчиком и список */
-nav .ico.bell { position: relative; display: inline-block; }
-nav .ico.bell .count {
+nav .bell, .header-bell .bell { position: relative; display: inline-flex; }
+nav .bell .count, .header-bell .bell .count {
   position: absolute; top: -8px; right: -14px; min-width: 24px; height: 24px; padding: 0 5px;
   border-radius: 12px; background: var(--danger); color: #fff; border: 2px solid #fff;
   font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; font-style: normal;
@@ -995,14 +1059,17 @@ nav .ico.bell .count {
 .admin-actions button { flex: 1 1 200px; }
 .report-table tr.editing td { background: #e6efff; }
 .report-table td button { min-height: 64px; white-space: nowrap; padding: 8px 14px; }
-/* нижнее меню на телефоне: колокольчик — только иконка в узкой колонке, справочники — в «Профиле» */
+/* телефон: нижнее меню не трогаем — колокольчик в шапке, справочники в «Профиле» */
+.header-bell { display: none; }
 @media (max-width: 700px) {
-  nav { display: flex; }
-  nav > a, nav > button { flex: 1 1 0; min-width: 0; }
-  nav > a.nav-bell { flex: 0 0 64px; }
-  nav > a.nav-bell .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  nav > a.nav-admin { display: none; }
-  nav .ico.bell .count { right: -12px; }
+  nav > a.nav-bell, nav > a.nav-admin { display: none; }
+  .header-bell {
+    display: inline-flex; align-items: center; justify-content: center; margin-left: auto;
+    min-width: 56px; min-height: 56px; border: 2px solid #fff; border-radius: 10px; color: #fff;
+  }
+  .header-bell.active { background: var(--signal); border-color: var(--signal); color: var(--graphite); }
+  .header-bell + .profile { margin-left: 0; }
+  .header-bell .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 .profile .button { display: flex; align-items: center; justify-content: center; }
 .unread-total { margin: -4px 0 12px; font-size: 1.1rem; }
@@ -1026,4 +1093,13 @@ nav .ico.bell .count {
   .report-table td[data-label] > * { flex: 1 1 auto; min-width: 0; }
   .report-table .share { max-width: 60%; }
   .segmented button { flex-basis: 130px; }
+}
+.warn-ico { color: var(--danger); margin-right: 6px; vertical-align: -0.2em; }
+svg.big-ico { display: block; margin: 0 auto 8px; }
+.warn-ico { color: var(--danger); margin-right: 6px; vertical-align: -0.2em; }
+svg.big-ico { display: block; margin: 0 auto 8px; }
+svg.inline-ico { display: inline-block; vertical-align: -0.2em; }
+/* длинные подписи нижнего меню («Оборудование») переносим, а не налезаем на соседей */
+@media (max-width: 700px) {
+  nav a, nav button { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
 }

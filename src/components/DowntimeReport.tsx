@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FileSpreadsheet } from 'lucide-react'
 import type { Order } from '../../shared/types'
 import type { AppData } from '../lib/data'
 import { message } from '../lib/supabase'
@@ -162,7 +163,7 @@ export function DowntimeReport({
           }
         }}
       >
-        📥 Excel
+        <FileSpreadsheet aria-hidden size={20} /> Excel
       </button>
     </section>
   )

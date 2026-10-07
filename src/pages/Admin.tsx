@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Check, Pencil, Plus } from 'lucide-react'
 import type { AppData } from '../lib/data'
 import { message, queryClient, supabase } from '../lib/supabase'
 import { t } from '../lib/i18n'
@@ -284,7 +285,7 @@ export function AdminPage({ data }: { data: AppData }) {
       {entity.note && <p className="muted">{t(entity.note)}</p>}
       {saved && (
         <p className="notice" role="status">
-          ✔ {saved}
+          <Check aria-hidden size={20} /> {saved}
         </p>
       )}
 
@@ -382,7 +383,7 @@ export function AdminPage({ data }: { data: AppData }) {
             />
           </label>
           <button type="button" onClick={() => open(null)}>
-            ＋ {t('Добавить')}
+            <Plus aria-hidden size={20} /> {t('Добавить')}
           </button>
         </div>
       )}
@@ -416,7 +417,7 @@ export function AdminPage({ data }: { data: AppData }) {
                     className="secondary"
                     onClick={() => open(r)}
                   >
-                    ✏️ {t('Изменить')}
+                    <Pencil aria-hidden size={18} /> {t('Изменить')}
                   </button>
                 </td>
               </tr>
