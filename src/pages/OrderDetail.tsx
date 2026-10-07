@@ -1,0 +1,625 @@
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useParams } from 'react-router-dom'
+import type {
+  AiReview,
+  Employee,
+  OrderAction,
+  OrderEvent,
+  OrderMaterial,
+  OrderPhoto,
+} from '../../shared/types'
+import { ORDER_STATUS_LABEL } from '../../shared/types'
+import { type AppData, dateLabel } from '../lib/data'
+import { message, queryClient, supabase } from '../lib/supabase'
+import {
+  changeStatus,
+  queueAction,
+  cached,
+  offline,
+  flushActions,
+} from '../lib/offline'
+import { uploadPhotos } from '../lib/photos'
+import { api } from '../lib/api'
+import { Voice } from '../components/Voice'
+// Совпадают с уважительными причинами в worker_rating (supabase/migrations/001_init.sql):
+// остальные отказы снижают рейтинг исполнителя.
+const REJECT_REASONS = ['Нет материалов', 'Нет допуска', 'Занят аварийным', 'Не на смене', 'Нет инструмента']
+export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
+  const { id } = useParams()
+  const order = data.orders.find((o) => o.id === Number(id))
+  const [notice, setNotice] = useState(''),
+    [busy, setBusy] = useState(false),
+    [work, setWork] = useState(''),
+    [files, setFiles] = useState<File[]>([]),
+    [materials, setMaterials] = useState<
+      { material_id: number; qty: number }[]
+    >([]),
+    [mockReview, setMockReview] = useState<AiReview | null>(null),
+    [rejecting, setRejecting] = useState(false)
+  const detail = useQuery({
+    queryKey: ['order', id],
+    networkMode: 'always',
+    queryFn: () =>
+      cached(`order:${id}`, async () => {
+        const [events, photos, reviews, materials] = await Promise.all([
+          supabase
+            .from('order_events')
+            .select('*')
+            .eq('order_id', id)
+            .order('created_at'),
+          supabase.from('order_photos').select('*').eq('order_id', id),
+          supabase
+            .from('ai_reviews')
+            .select('*')
+            .eq('order_id', id)
+            .order('created_at', { ascending: false }),
+          supabase.from('order_materials').select('*').eq('order_id', id),
+        ])
+        for (const r of [events, photos, reviews, materials])
+          if (r.error) throw r.error
+        const signed = await Promise.all(
+          (photos.data as OrderPhoto[]).map(async (p) => {
+            const { data, error } = await supabase.storage
+              .from('photos')
+              .createSignedUrl(p.storage_path, 3600)
+            if (error) throw error
+            return { ...p, url: data.signedUrl }
+          }),
+        )
+        return {
+          events: events.data as OrderEvent[],
+          photos: signed,
+          reviews: reviews.data as AiReview[],
+          materials: materials.data as OrderMaterial[],
+        }
+      }),
+  })
+  if (!order)
+    return (
+      <p>
+        Наряд не найден. <Link to="/orders">Вернуться к списку</Link>
+      </p>
+    )
+  if (me.role === 'worker' && order.assignee_id !== me.id)
+    return <p>Этот наряд назначен другому исполнителю.</p>
+  const master = ['master', 'admin'].includes(me.role),
+    worker = me.role === 'worker' && order.assignee_id === me.id,
+    review = detail.data?.reviews[0] || mockReview
+  async function run(fn: () => Promise<unknown>) {
+    if (busy) return
+    setBusy(true)
+    setNotice('')
+    try {
+      const result = await fn()
+      setNotice(typeof result === 'string' ? result : 'Готово')
+      await queryClient.invalidateQueries()
+    } catch (e) {
+      setNotice(message(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  function reject(reason: string) {
+    setRejecting(false)
+    void run(() =>
+      changeStatus({
+        p_order_id: order!.id,
+        p_action: 'reject',
+        p_payload: { reason, comment: reason },
+      }),
+    )
+  }
+  function action(action: OrderAction) {
+    if (action === 'reject') {
+      setRejecting(true)
+      return
+    }
+    const reason = ['pause', 'rework'].includes(action)
+      ? window.prompt('Укажите причину')
+      : null
+    if (['pause', 'rework'].includes(action) && !reason?.trim())
+      return
+    if (
+      ['close', 'cancel'].includes(action) &&
+      !window.confirm(
+        `${action === 'close' ? 'Закрыть' : 'Отменить'} наряд №${order!.number}?`,
+      )
+    )
+      return
+    void run(() =>
+      changeStatus({
+        p_order_id: order!.id,
+        p_action: action,
+        p_payload: reason
+          ? { reason: reason.trim(), comment: reason.trim() }
+          : {},
+      }),
+    )
+  }
+  const actions: [OrderAction, string][] = []
+  if (worker) {
+    if (order.status === 'issued') actions.push(['accept', 'Принять'])
+    if (['issued', 'accepted'].includes(order.status))
+      actions.push(['queue', 'В очередь'])
+    if (['issued', 'accepted', 'queued'].includes(order.status))
+      actions.push(['reject', 'Отклонить'])
+    if (['accepted', 'queued', 'needs_rework'].includes(order.status))
+      actions.push(['start', 'Начать'])
+    if (order.status === 'in_progress') actions.push(['pause', 'Приостановить'])
+    if (order.status === 'paused') actions.push(['resume', 'Продолжить'])
+  }
+  return (
+    <>
+      <Link className="back" to="/orders">
+        ← Все наряды
+      </Link>
+      <div className="page-title">
+        <div>
+          <p className="eyebrow">НАРЯД № {order.number}</p>
+          <h1>{order.description}</h1>
+        </div>
+        <span
+          className={`badge ${order.priority === 'emergency' ? 'emergency' : order.status}`}
+        >
+          {order.priority === 'emergency' ? 'Аварийный · ' : order.type === 'emergency' ? 'Внеплановый · ' : 'Плановый · '}
+          {ORDER_STATUS_LABEL[order.status]}
+        </span>
+      </div>
+      <div className="grid2">
+        <section className="panel">
+          <h2>Задание</h2>
+          <p>
+            {data.sites.find((s) => s.id === order.site_id)?.name} /{' '}
+            {data.equipment.find((e) => e.id === order.equipment_id)?.name}
+          </p>
+          <p>
+            Исполнитель:{' '}
+            {data.employees.find((e) => e.id === order.assignee_id)
+              ?.full_name || 'Не назначен'}
+          </p>
+          <p className={order.is_overdue ? 'error' : ''}>
+            Срок: {dateLabel(order.deadline)}
+          </p>
+          <div className="actions">
+            {actions.map(([a, label]) => (
+              <button disabled={busy} key={a} onClick={() => action(a)}>
+                {label}
+              </button>
+            ))}
+            {rejecting && (
+              <div className="panel">
+                <p>Причина отказа:</p>
+                <div className="actions">
+                  {REJECT_REASONS.map((r) => (
+                    <button key={r} className="secondary" disabled={busy} onClick={() => reject(r)}>
+                      {r}
+                    </button>
+                  ))}
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      const other = window.prompt('Опишите причину отказа')?.trim()
+                      if (other) reject(`Другое: ${other}`)
+                    }}
+                  >
+                    Другое
+                  </button>
+                  <button className="danger" onClick={() => setRejecting(false)}>
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
+            {master && order.status === 'submitted' && (
+              <>
+                <button disabled={busy} onClick={() => action('close')}>
+                  Закрыть наряд
+                </button>
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => action('rework')}
+                >
+                  На доработку
+                </button>
+              </>
+            )}
+            {master && !['closed', 'cancelled'].includes(order.status) && (
+              <button
+                className="danger"
+                disabled={busy}
+                onClick={() => action('cancel')}
+              >
+                Отменить наряд
+              </button>
+            )}
+          </div>
+          {master &&
+            ['issued', 'accepted', 'queued', 'rejected'].includes(
+              order.status,
+            ) && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const f = new FormData(e.currentTarget)
+                  void run(() =>
+                    changeStatus({
+                      p_order_id: order.id,
+                      p_action: 'reassign',
+                      p_payload: { assignee_id: Number(f.get('assignee')) },
+                    }),
+                  )
+                }}
+              >
+                <label>
+                  Переназначить
+                  <select
+                    aria-label="Переназначить"
+                    name="assignee"
+                    defaultValue={order.assignee_id || ''}
+                    required
+                  >
+                    {data.employees
+                      .filter((e) => e.role === 'worker')
+                      .map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.full_name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button className="secondary" disabled={busy}>
+                  Назначить
+                </button>
+              </form>
+            )}
+        </section>
+        <section className="panel">
+          <h2>Проверка качества</h2>
+          {review ? (
+            <>
+              <strong className="score">
+                {review.master_score ?? review.score} / 5
+              </strong>
+              <p>
+                {review.verdict === 'needs_rework'
+                  ? 'Нужна доработка'
+                  : review.verdict === 'accepted'
+                    ? 'Принято'
+                    : 'Принято с замечаниями'}
+              </p>
+              <p>{review.explanation}</p>
+              <h3>Обратная связь исполнителю</h3>
+              <p>{review.worker_feedback}</p>
+              {review.checks.map((c, i) => (
+                <p key={i}>
+                  {c.ok ? '✓' : '!'} {c.note}
+                </p>
+              ))}
+              {review.master_comment && <p>Мастер: {review.master_comment}</p>}
+              {master && review.id > 0 && (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const f = new FormData(e.currentTarget)
+                    void run(async () => {
+                      const { error } = await supabase.rpc(
+                        'master_override_review',
+                        {
+                          p_review_id: review.id,
+                          p_score: Number(f.get('score')),
+                          p_comment: String(f.get('comment')),
+                        },
+                      )
+                      if (error) throw error
+                    })
+                  }}
+                >
+                  <label>
+                    Оценка мастера
+                    <select
+                      aria-label="Оценка мастера"
+                      name="score"
+                      defaultValue={review.master_score ?? review.score}
+                    >
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <option key={n}>{n}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Объяснение
+                    <input name="comment" required />
+                  </label>
+                  <button disabled={busy}>Изменить оценку</button>
+                </form>
+              )}
+            </>
+          ) : (
+            <p>Оценка появится после исполнения и проверки.</p>
+          )}
+          {['submitted', 'needs_rework'].includes(order.status) &&
+            (worker || master) && (
+              <button
+                disabled={busy}
+                className="secondary"
+                onClick={() =>
+                  void run(async () => {
+                    setMockReview(await api.checkOrder({ order_id: order.id }))
+                    return 'Проверка выполнена'
+                  })
+                }
+              >
+                Проверить ИИ
+              </button>
+            )}
+        </section>
+      </div>
+      {notice && (
+        <p role="status" className="notice">
+          {notice}
+        </p>
+      )}
+      {detail.error && (
+        <p role="alert" className="error">
+          {message(detail.error)}{' '}
+          <button onClick={() => void detail.refetch()}>
+            Повторить загрузку
+          </button>
+        </p>
+      )}
+      {worker && order.status === 'in_progress' && (
+        <form
+          className="panel form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            const f = new FormData(e.currentTarget)
+            void run(async () => {
+              if (!work.trim()) throw new Error('Опишите выполненные работы')
+              if (
+                order.type === 'emergency' &&
+                !files.length &&
+                !detail.data?.photos.some((p) => p.kind === 'after')
+              )
+                throw new Error(
+                  'Для внепланового наряда обязательно фото после работ',
+                )
+              if (
+                materials.some(
+                  (m) =>
+                    !m.material_id || !Number.isFinite(m.qty) || m.qty <= 0,
+                )
+              )
+                throw new Error('Укажите материалы и положительное количество')
+              if (files.length > 5) throw new Error('Не больше 5 фотографий')
+              if (
+                !navigator.onLine ||
+                (me.auth_user_id &&
+                  (await offline.actions
+                    .where('userId')
+                    .equals(me.auth_user_id)
+                    .count()))
+              ) {
+                const notice = await queueAction(
+                  {
+                    p_order_id: order.id,
+                    p_action: 'submit',
+                    p_payload: {
+                      work_done: work.trim(),
+                      fault_code: String(f.get('fault')),
+                      comment: String(f.get('comment')),
+                      materials,
+                    },
+                  },
+                  files,
+                  me.id,
+                )
+                if (navigator.onLine) void flushActions()
+                return notice
+              }
+              await uploadPhotos(files, order.id, 'after', me.id)
+              setFiles([])
+              await changeStatus({
+                p_order_id: order.id,
+                p_action: 'submit',
+                p_payload: {
+                  work_done: work.trim(),
+                  fault_code: String(f.get('fault')),
+                  comment: String(f.get('comment')),
+                  materials,
+                },
+              })
+              try {
+                setMockReview(await api.checkOrder({ order_id: order.id }))
+                return 'Отчёт отправлен на проверку мастеру'
+              } catch (e) {
+                return `Отчёт сохранён. ИИ недоступен: ${message(e)}. Повторите проверку кнопкой «Проверить ИИ».`
+              }
+            })
+          }}
+        >
+          <h2>Исполнено · отчёт о работах</h2>
+          <Voice onText={(text) => setWork(text)} />
+          <label>
+            Выполненные работы
+            <textarea
+              required
+              value={work}
+              onChange={(e) => setWork(e.target.value)}
+            />
+          </label>
+          <label>
+            Шифр
+            <select
+              aria-label="Шифр"
+              name="fault"
+              required
+              defaultValue={order.fault_code || ''}
+            >
+              <option value="">Выберите шифр</option>
+              {data.faults.map((f) => (
+                <option key={f.code} value={f.code}>
+                  {f.code} · {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <h3>Материалы</h3>
+          {materials.map((m, i) => (
+            <div className="material-row" key={i}>
+              <select
+                aria-label="Материал"
+                required
+                value={m.material_id || ''}
+                onChange={(e) =>
+                  setMaterials(
+                    materials.map((m, j) =>
+                      i === j
+                        ? { ...m, material_id: Number(e.target.value) }
+                        : m,
+                    ),
+                  )
+                }
+              >
+                <option value="">Материал</option>
+                {data.materials.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.unit})
+                  </option>
+                ))}
+              </select>
+              <input
+                aria-label="Количество"
+                type="number"
+                min="0.001"
+                step="any"
+                required
+                value={m.qty}
+                onChange={(e) =>
+                  setMaterials(
+                    materials.map((m, j) =>
+                      i === j ? { ...m, qty: Number(e.target.value) } : m,
+                    ),
+                  )
+                }
+              />
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  setMaterials(materials.filter((_, j) => j !== i))
+                }
+              >
+                Убрать
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="secondary"
+            onClick={() =>
+              setMaterials([...materials, { material_id: 0, qty: 1 }])
+            }
+          >
+            ＋ Материал
+          </button>
+          <label>
+            Фото после работ {order.type === 'emergency' ? '(обязательно)' : ''}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setFiles(Array.from(e.target.files || []))}
+            />
+          </label>
+          <label>
+            Комментарий
+            <textarea name="comment" />
+          </label>
+          <button disabled={busy}>
+            {busy ? 'Отправляем…' : 'Исполнено — отправить отчёт'}
+          </button>
+        </form>
+      )}
+      {order.work_done && (
+        <section className="panel">
+          <h2>Выполненные работы</h2>
+          <p>{order.work_done}</p>
+          <p>Шифр: {order.fault_code}</p>
+          <p>{order.comment}</p>
+          {detail.data?.materials.map((m) => (
+            <p key={m.id}>
+              {data.materials.find((v) => v.id === m.material_id)?.name} —{' '}
+              {m.qty} {data.materials.find((v) => v.id === m.material_id)?.unit}
+            </p>
+          ))}
+        </section>
+      )}
+      <section className="panel">
+        <h2>Фотографии</h2>
+        <div className="photos">
+          {detail.data?.photos.map((p) => (
+            <figure key={p.id}>
+              <a href={p.url} target="_blank" rel="noreferrer">
+                <img
+                  src={p.url}
+                  alt={p.kind === 'before' ? 'До работ' : 'После работ'}
+                />
+              </a>
+              <figcaption>
+                {p.kind === 'before' ? 'До' : 'После'} · EXIF:{' '}
+                {dateLabel(p.taken_at)}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        {master && !['closed', 'cancelled'].includes(order.status) && (
+          <label>
+            Добавить фото до работ
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={busy}
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                void run(() => uploadPhotos(files, order.id, 'before', me.id))
+                e.target.value = ''
+              }}
+            />
+          </label>
+        )}
+      </section>
+      <section className="panel">
+        <h2>Хронология</h2>
+        <ol className="timeline">
+          {detail.data?.events.map((e) => (
+            <li key={e.id}>
+              <small>
+                {dateLabel(e.created_at)} ·{' '}
+                {data.employees.find((p) => p.id === e.actor_id)?.full_name ||
+                  'Система'}
+              </small>
+              <p>
+                {e.to_status
+                  ? ORDER_STATUS_LABEL[e.to_status]
+                  : e.action === 'create'
+                    ? 'Создан'
+                    : e.action === 'ai_review'
+                      ? 'Проверка ИИ'
+                      : 'Обновление наряда'}
+                {e.reason
+                  ? ` · ${e.reason}`
+                  : e.comment
+                    ? ` · ${e.comment}`
+                    : ''}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </>
+  )
+}
