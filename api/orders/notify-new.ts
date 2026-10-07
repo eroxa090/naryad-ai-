@@ -9,6 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!onlyPost(req, res)) return
   const me = await requireEmployee(req, res)
   if (!me) return
+  if (me.role === 'worker') return res.status(403).json({ error: 'Только мастер' })
   const o = await getOrderFull(Number(req.body?.order_id))
   if (!o) return res.status(404).json({ error: 'Наряд не найден' })
   if (!o.assignee_id) return res.status(200).json({ ok: true, skipped: 'no assignee' })

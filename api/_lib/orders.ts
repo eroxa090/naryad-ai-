@@ -21,6 +21,7 @@ export async function lastComment(orderId: number): Promise<string | null> {
     .from('order_events')
     .select('comment, reason')
     .eq('order_id', orderId)
+    .not('action', 'in', '(overdue,escalate,master_override,ai_review,create)')
     .or('comment.not.is.null,reason.not.is.null')
     .order('created_at', { ascending: false })
     .limit(1)

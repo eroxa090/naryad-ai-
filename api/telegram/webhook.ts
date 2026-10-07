@@ -1,5 +1,5 @@
 // Telegram-бот @naryad_ai_kz_bot.
-//  /start <login>     — привязать Telegram к сотруднику
+//  /start <login> <ПИН> — привязать Telegram к сотруднику (ПИН проверяется через Supabase Auth)
 //  /my                — мои активные наряды (исполнитель)
 //  кнопки             — Принять / В очередь / Начать / Переназначить (эскалация)
 //  текст от мастера   — «кто свободен», «что просрочено» отвечаем сами, остальное → ИИ-ассистент
@@ -7,7 +7,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { Employee } from '../../shared/types.js'
 import { ORDER_STATUS_LABEL } from '../../shared/types.js'
+import { createClient } from '@supabase/supabase-js'
 import { admin } from '../_lib/supabase.js'
+import { notify } from '../_lib/notify.js'
 import { sendTelegram, tg } from '../_lib/telegram.js'
 import { getOrderFull, hhmm } from '../_lib/orders.js'
 
@@ -18,7 +20,8 @@ const ACTIONS: Record<string, { action: string; done: string }> = {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.headers['x-telegram-bot-api-secret-token'] !== process.env.CRON_SECRET) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || req.headers['x-telegram-bot-api-secret-token'] !== secret) {
     return res.status(401).end()
   }
   try {
@@ -36,15 +39,19 @@ async function employeeByChat(chatId: number): Promise<Employee | null> {
   return (data as Employee) ?? null
 }
 
-async function onMessage(msg: { chat: { id: number }; text: string }) {
+async function onMessage(msg: { chat: { id: number }; message_id: number; text: string }) {
   const chatId = msg.chat.id
   const text = msg.text.trim()
 
   if (text.startsWith('/start')) {
-    const login = text.split(/\s+/)[1]?.toLowerCase()
-    if (!login) {
-      return sendTelegram(chatId, 'Здравствуйте! Это бот НарядAI.\nЧтобы получать наряды, отправьте: <b>/start ваш_логин</b>\nНапример: /start worker1')
+    const [, rawLogin, pin] = text.split(/\s+/)
+    const login = rawLogin?.toLowerCase()
+    if (!login || !pin) {
+      return sendTelegram(chatId, 'Здравствуйте! Это бот НарядAI.\nЧтобы получать наряды, отправьте: /start логин ПИН\nНапример: /start worker1 111111')
     }
+    // ПИН не должен оставаться в переписке
+    await tg('deleteMessage', { chat_id: chatId, message_id: msg.message_id })
+    if (!(await pinIsValid(login, pin))) return sendTelegram(chatId, 'Неверный логин или ПИН.')
     const { data: emp } = await admin.from('employees').select('id, full_name, role').eq('login', login).maybeSingle()
     if (!emp) return sendTelegram(chatId, `Сотрудник с логином «${login}» не найден.`)
     await admin.from('employees').update({ telegram_chat_id: null }).eq('telegram_chat_id', chatId)
@@ -56,7 +63,7 @@ async function onMessage(msg: { chat: { id: number }; text: string }) {
   }
 
   const me = await employeeByChat(chatId)
-  if (!me) return sendTelegram(chatId, 'Сначала привяжите аккаунт: /start ваш_логин')
+  if (!me) return sendTelegram(chatId, 'Сначала привяжите аккаунт: /start логин ПИН')
 
   if (text === '/my' || /мои наряд/i.test(text)) return sendMyOrders(chatId, me)
 
@@ -73,7 +80,7 @@ async function onCallback(cb: { id: string; data: string; message?: { chat: { id
   const chatId = cb.message?.chat.id
   const me = chatId ? await employeeByChat(chatId) : null
   const answer = (text: string) => tg('answerCallbackQuery', { callback_query_id: cb.id, text, show_alert: false })
-  if (!me || !cb.message) return answer('Сначала привяжите аккаунт: /start логин')
+  if (!me || !cb.message) return answer('Сначала привяжите аккаунт: /start логин ПИН')
 
   const [kind, idStr, extra] = cb.data.split(':')
   const orderId = Number(idStr)
@@ -83,6 +90,7 @@ async function onCallback(cb: { id: string; data: string; message?: { chat: { id
   let rpc: { action: string; payload: Record<string, unknown>; done: string }
   if (kind === 'r') {
     if (me.role === 'worker') return answer('Только мастер может переназначить')
+    if (!Number(extra)) return answer('Не указан исполнитель')
     rpc = { action: 'reassign', payload: { assignee_id: Number(extra) }, done: '🔁 Наряд переназначен' }
   } else if (ACTIONS[kind]) {
     if (o.assignee_id !== me.id) return answer('Это не ваш наряд')
@@ -94,7 +102,7 @@ async function onCallback(cb: { id: string; data: string; message?: { chat: { id
   const { error } = await admin.rpc('change_order_status', {
     p_order_id: orderId,
     p_action: rpc.action,
-    p_payload: { ...rpc.payload, actor_id: me.id, comment: 'через Telegram' },
+    p_payload: { ...rpc.payload, actor_id: me.id },
   })
   if (error) return answer(error.message)
 
@@ -105,13 +113,19 @@ async function onCallback(cb: { id: string; data: string; message?: { chat: { id
   })
   await sendTelegram(chatId!, `${rpc.done}: наряд №${o.number}, ${o.equipment?.name}.`)
   if (kind === 'r') {
-    // уведомление новому исполнителю отправит фронт/мастер через /api/orders/notify-new; здесь — коротко в Telegram
-    const { data: emp } = await admin.from('employees').select('telegram_chat_id').eq('id', Number(extra)).single()
-    if (emp?.telegram_chat_id) {
-      await sendTelegram(emp.telegram_chat_id, `🛠 Вам переназначен наряд №${o.number}\n${o.equipment?.name}, ${o.site?.name}\n${o.description}`,
-        [[{ text: '✅ Принять', callback_data: `a:${o.id}` }, { text: '⏳ В очередь', callback_data: `q:${o.id}` }]])
-    }
+    await notify(Number(extra), o.id, 'new_order',
+      `🛠 Вам переназначен наряд №${o.number}\n${o.equipment?.name}, ${o.site?.name}\n${o.description}`,
+      [[{ text: '✅ Принять', callback_data: `a:${o.id}` }, { text: '⏳ В очередь', callback_data: `q:${o.id}` }]])
   }
+}
+
+// Проверка ПИН отдельным клиентом с публичным ключом, чтобы сессия пользователя не попала в admin-клиент.
+async function pinIsValid(login: string, pin: string): Promise<boolean> {
+  const client = createClient(process.env.SUPABASE_URL!, process.env.VITE_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { error } = await client.auth.signInWithPassword({ email: `${login}@naryad.local`, password: pin })
+  return !error
 }
 
 async function sendMyOrders(chatId: number, me: Employee) {

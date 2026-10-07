@@ -108,7 +108,7 @@ EXIF `taken_at` фронт читает ДО сжатия (сжатие стир
 ## Эндпоинты Человека 1
 - `POST /api/orders/notify-new { order_id }`: push исполнителю о новом наряде (Telegram с кнопками «Принять» и «В очередь», плюс запись в `notifications`).
 - `POST /api/cron/check-deadlines` (заголовок `x-cron-secret`): раз в минуту вызывается pg_cron. Делает напоминания за 30 минут, флаг просрочки, сообщения исполнителю и мастеру, эскалацию непринятых (10 минут, аварийные 3 минуты).
-- `POST /api/telegram/webhook`: бот. `/start <login>` привязывает chat_id. Вопросы мастера пересылает в `/api/ai/assistant`.
+- `POST /api/telegram/webhook`: бот. `/start <login> <ПИН>` привязывает chat_id (ПИН проверяется, сообщение с ПИН удаляется). Вопросы мастера пересылает в `/api/ai/assistant`.
 - `api/_lib/notify.ts`: функция `notify(employee_id, order_id, kind, text)` пишет в `notifications` и шлёт в Telegram. Человек 3 может её импортировать.
 
 ## Безопасность (для защиты)

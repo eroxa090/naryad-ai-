@@ -72,12 +72,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 3. Эскалация: наряд не принят за 10 мин (аварийный — за 3 мин) → мастеру с предложением другого свободного
   const { data: unaccepted } = await admin
     .from('orders')
-    .select('id, priority, created_at')
+    .select('id, priority, created_at, assigned_at')
     .eq('status', 'issued')
     .is('escalated_at', null)
   for (const row of unaccepted ?? []) {
     const limit = row.priority === 'emergency' ? ACCEPT_TIMEOUT_MIN.emergency : ACCEPT_TIMEOUT_MIN.other
-    if (now - new Date(row.created_at).getTime() < limit * 60_000) continue
+    // считаем от момента назначения: после переназначения таймер начинается заново
+    if (now - new Date(row.assigned_at ?? row.created_at).getTime() < limit * 60_000) continue
     const o = await getOrderFull(row.id)
     if (!o) continue
     const alt = await findFreeWorker(o.assignee?.specialty, o.assignee_id)

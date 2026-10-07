@@ -95,6 +95,7 @@ export interface Order {
   started_at: string | null
   submitted_at: string | null
   closed_at: string | null
+  assigned_at: string | null
 }
 
 export interface OrderEvent {
