@@ -5,8 +5,8 @@ import { api } from '../lib/api'
 import { message } from '../lib/supabase'
 
 // Распознавание речи:
-// 1) встроенное в браузер (Chrome/Android: Web Speech API, ru-RU / kk-KZ) — бесплатно, текст виден во время диктовки;
-// 2) иначе запись уходит на сервер (Whisper через Groq);
+// 1) запись уходит на сервер (Whisper через Groq с подсказкой кодов оборудования) — точнее всего;
+// 2) если сервер недоступен — встроенное распознавание браузера (Web Speech API, ru-RU / kk-KZ);
 // 3) если ни то ни другое недоступно — честная ошибка, никаких подставных фраз.
 type Recognition = {
   lang: string
@@ -29,6 +29,7 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
   const [state, setState] = useState<'idle' | 'recording' | 'loading'>('idle')
   const [error, setError] = useState('')
   const [heard, setHeard] = useState('')
+  const useBrowser = useRef(false)
 
   useEffect(
     () => () => {
@@ -109,8 +110,11 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
         })
         await finish((await api.transcribe({ audio_base64, mime: r.mimeType })).text)
       } catch (e) {
-        setError(message(e))
         setState('idle')
+        if (RecognitionCtor()) {
+          useBrowser.current = true
+          setError(t('Сервер распознавания недоступен. Нажмите ещё раз — распознаем прямо в телефоне.'))
+        } else setError(message(e))
       }
     }
     r.start()
@@ -122,7 +126,8 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
     setHeard('')
     try {
       const Ctor = RecognitionCtor()
-      if (Ctor) startBrowser(Ctor)
+      const canRecord = Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder)
+      if (Ctor && (useBrowser.current || !canRecord)) startBrowser(Ctor)
       else await startRecorder()
     } catch (e) {
       setError(message(e))
