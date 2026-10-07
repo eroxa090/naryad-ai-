@@ -1,12 +1,16 @@
-export async function exportExcel(rows: Record<string, unknown>[]) {
+export async function exportExcel(
+  rows: Record<string, unknown>[],
+  sheet = 'Наряды',
+  file = 'НарядAI-отчёт.xlsx',
+) {
   const XLSX = await import('xlsx')
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(
     workbook,
     XLSX.utils.json_to_sheet(rows),
-    'Наряды',
+    sheet.slice(0, 31),
   )
-  XLSX.writeFile(workbook, 'НарядAI-отчёт.xlsx')
+  XLSX.writeFile(workbook, file)
 }
 export async function exportPdf(lines: string[]) {
   const { jsPDF } = await import('jspdf')

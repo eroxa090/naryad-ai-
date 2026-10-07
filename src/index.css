@@ -822,3 +822,15 @@ input[type='file']::file-selector-button {
 }
 .voice { display: grid; gap: 8px; margin-bottom: 8px; }
 .voice .heard { font-size: 1.1rem; font-weight: 700; background: #f1f1f1; border-left: 6px solid var(--primary); padding: 10px 12px; border-radius: 8px; margin: 0; }
+/* отчёты: таблицы и переключатель группировки */
+.segmented { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.segmented button { flex: 1 1 160px; }
+.segmented button[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 2px solid var(--line-soft); border-radius: 10px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+.report-table th, .report-table td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 2px solid var(--line-soft); }
+.report-table th { background: #f1f1f1; font-weight: 800; white-space: nowrap; }
+.report-table td.num { font-weight: 900; white-space: nowrap; }
+.report-table tr.over td { background: #fff7cc; }
+.report-table tr.over td:first-child { border-left: 8px solid var(--danger); }
+.report-table tr.over td.num { color: var(--danger); }
