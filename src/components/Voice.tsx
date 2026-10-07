@@ -126,7 +126,7 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
     setHeard('')
     try {
       const Ctor = RecognitionCtor()
-      const canRecord = Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder)
+      const canRecord = typeof navigator.mediaDevices?.getUserMedia === 'function' && 'MediaRecorder' in window
       if (Ctor && (useBrowser.current || !canRecord)) startBrowser(Ctor)
       else await startRecorder()
     } catch (e) {
