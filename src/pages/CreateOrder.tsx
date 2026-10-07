@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import type { Employee, Priority, SuggestWorkerRes } from '../../shared/types'
+import type { Employee, OrderType, Priority, SuggestWorkerRes } from '../../shared/types'
 import { PRIORITY_LABEL } from '../../shared/types'
 import { type AppData, liveLabels } from '../lib/data'
 import { api } from '../lib/api'
@@ -17,6 +17,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
     [description, setDescription] = useState(''),
     [assignee, setAssignee] = useState(0),
     [priority, setPriority] = useState<Priority>('normal'),
+    [type, setType] = useState<OrderType>('emergency'),
     [fault, setFault] = useState(''),
     [files, setFiles] = useState<File[]>([]),
     [candidates, setCandidates] = useState<SuggestWorkerRes['candidates']>([]),
@@ -76,7 +77,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
                 assignee_id: assignee,
                 master_id: me.id,
                 priority,
-                type: priority === 'emergency' ? 'emergency' : 'planned',
+                type,
                 deadline: new Date(String(f.get('deadline'))).toISOString(),
                 fault_code: fault || null,
               })
@@ -112,6 +113,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             const parsed = await api.parseOrder({ text })
             setDescription(parsed.description)
             setPriority(parsed.priority)
+            setType(parsed.type)
             setFault(parsed.fault_code || '')
             if (parsed.site_id) setSite(parsed.site_id)
             const found = data.equipment.find(
@@ -204,11 +206,27 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
         )}
         <div className="grid2">
           <label>
+            Тип работ
+            <select
+              aria-label="Тип работ"
+              value={type}
+              onChange={(e) => setType(e.target.value as OrderType)}
+            >
+              <option value="emergency">Внеплановый (поломка)</option>
+              <option value="planned">Плановый (ППР, ТО)</option>
+            </select>
+          </label>
+          <label>
             Приоритет
             <select
               aria-label="Приоритет"
               value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
+              onChange={(e) => {
+                const next = e.target.value as Priority
+                setPriority(next)
+                if (next === 'planned') setType('planned')
+                if (next === 'emergency') setType('emergency')
+              }}
             >
               {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>
@@ -217,6 +235,8 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
               ))}
             </select>
           </label>
+        </div>
+        <div className="grid2">
           <label>
             Срок
             <input

@@ -34,7 +34,7 @@ function Card({
   return (
     <article
       ref={setNodeRef}
-      className={`order ${order.type === 'emergency' ? 'emergency' : ''}`}
+      className={`order ${order.priority === 'emergency' ? 'emergency' : ''}`}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       <div className="row">
