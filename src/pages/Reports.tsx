@@ -18,6 +18,7 @@ import { rows, message } from '../lib/supabase'
 import { exportExcel, exportPdf } from '../lib/export'
 import { MaterialsReport } from '../components/MaterialsReport'
 import { DowntimeReport } from '../components/DowntimeReport'
+import { Voice } from '../components/Voice'
 const hours = (a: string, b: string) =>
   Math.max(0, (new Date(b).getTime() - new Date(a).getTime()) / 3600000)
 const localInput = (date: Date) =>
@@ -50,6 +51,7 @@ function ReportContent({ data }: { data: AppData }) {
     [busy, setBusy] = useState(false),
     [question, setQuestion] = useState(''),
     [answer, setAnswer] = useState(''),
+    [asked, setAsked] = useState(''),
     [selected, setSelected] = useState<AiInsight | null>(null)
   const [now] = useState(() => new Date().toISOString())
   const insights = useQuery({
@@ -107,6 +109,21 @@ function ReportContent({ data }: { data: AppData }) {
     .filter((e) => e.count)
     .sort((a, b) => b.count - a.count)
     .slice(0, 5)
+  const [asking, setAsking] = useState(false),
+    [askError, setAskError] = useState('')
+  async function ask(text: string) {
+    setAsking(true)
+    setAskError('')
+    try {
+      setAnswer((await api.assistant({ question: text })).answer)
+      setAsked(text)
+      setQuestion('')
+    } catch (e) {
+      setAskError(message(e))
+    } finally {
+      setAsking(false)
+    }
+  }
   async function run(fn: () => Promise<unknown>) {
     setBusy(true)
     setError('')
@@ -426,13 +443,17 @@ function ReportContent({ data }: { data: AppData }) {
       </section>
       <section className="panel">
         <h2>ИИ-ассистент</h2>
+        <Voice
+          hint="Спросите, например: кто свободен? что просрочено?"
+          onText={(text) => {
+            setQuestion(text)
+            return ask(text)
+          }}
+        />
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            void run(async () => {
-              setAnswer((await api.assistant({ question })).answer)
-              setQuestion('')
-            })
+            void ask(question.trim())
           }}
         >
           <label>
@@ -444,12 +465,20 @@ function ReportContent({ data }: { data: AppData }) {
               placeholder="Кто свободен? Что просрочено?"
             />
           </label>
-          <button disabled={busy || !question.trim()}>Спросить</button>
+          <button disabled={asking || !question.trim()}>
+            {asking ? 'Думаю…' : 'Спросить'}
+          </button>
         </form>
-        {answer && (
-          <p className="chat-answer" role="status">
-            {answer}
+        {askError && (
+          <p className="error" role="alert">
+            {askError}
           </p>
+        )}
+        {answer && (
+          <div className="chat-answer" role="status">
+            <p className="muted">«{asked}»</p>
+            <p>{answer}</p>
+          </div>
         )}
       </section>
     </>
