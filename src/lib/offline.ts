@@ -81,8 +81,10 @@ export async function flushActions() {
           if (error) throw error
           await offline.actions.update(item.id!, { applied: true })
         }
+        // Отчёт уже принят сервером: сбой ИИ-проверки не должен блокировать очередь.
+        // Мастер может повторить проверку кнопкой «Проверить ИИ».
         if (item.args.p_action === 'submit')
-          await api.checkOrder({ order_id: item.args.p_order_id })
+          await api.checkOrder({ order_id: item.args.p_order_id }).catch(() => null)
         await offline.actions.delete(item.id!)
       } catch (error) {
         if (navigator.onLine)

@@ -22,6 +22,9 @@ import {
 import { uploadPhotos } from '../lib/photos'
 import { api } from '../lib/api'
 import { Voice } from '../components/Voice'
+// Совпадают с уважительными причинами в worker_rating (supabase/migrations/001_init.sql):
+// остальные отказы снижают рейтинг исполнителя.
+const REJECT_REASONS = ['Нет материалов', 'Нет допуска', 'Занят аварийным', 'Не на смене', 'Нет инструмента']
 export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
   const { id } = useParams()
   const order = data.orders.find((o) => o.id === Number(id))
@@ -32,7 +35,8 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
     [materials, setMaterials] = useState<
       { material_id: number; qty: number }[]
     >([]),
-    [mockReview, setMockReview] = useState<AiReview | null>(null)
+    [mockReview, setMockReview] = useState<AiReview | null>(null),
+    [rejecting, setRejecting] = useState(false)
   const detail = useQuery({
     queryKey: ['order', id],
     networkMode: 'always',
@@ -96,11 +100,25 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
       setBusy(false)
     }
   }
+  function reject(reason: string) {
+    setRejecting(false)
+    void run(() =>
+      changeStatus({
+        p_order_id: order!.id,
+        p_action: 'reject',
+        p_payload: { reason, comment: reason },
+      }),
+    )
+  }
   function action(action: OrderAction) {
-    const reason = ['pause', 'reject', 'rework'].includes(action)
+    if (action === 'reject') {
+      setRejecting(true)
+      return
+    }
+    const reason = ['pause', 'rework'].includes(action)
       ? window.prompt('Укажите причину')
       : null
-    if (['pause', 'reject', 'rework'].includes(action) && !reason?.trim())
+    if (['pause', 'rework'].includes(action) && !reason?.trim())
       return
     if (
       ['close', 'cancel'].includes(action) &&
@@ -142,9 +160,9 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
           <h1>{order.description}</h1>
         </div>
         <span
-          className={`badge ${order.type === 'emergency' ? 'emergency' : order.status}`}
+          className={`badge ${order.priority === 'emergency' ? 'emergency' : order.status}`}
         >
-          {order.type === 'emergency' ? 'Аварийный · ' : ''}
+          {order.priority === 'emergency' ? 'Аварийный · ' : order.type === 'emergency' ? 'Внеплановый · ' : 'Плановый · '}
           {ORDER_STATUS_LABEL[order.status]}
         </span>
       </div>
@@ -169,6 +187,31 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 {label}
               </button>
             ))}
+            {rejecting && (
+              <div className="panel">
+                <p>Причина отказа:</p>
+                <div className="actions">
+                  {REJECT_REASONS.map((r) => (
+                    <button key={r} className="secondary" disabled={busy} onClick={() => reject(r)}>
+                      {r}
+                    </button>
+                  ))}
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      const other = window.prompt('Опишите причину отказа')?.trim()
+                      if (other) reject(`Другое: ${other}`)
+                    }}
+                  >
+                    Другое
+                  </button>
+                  <button className="danger" onClick={() => setRejecting(false)}>
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
             {master && order.status === 'submitted' && (
               <>
                 <button disabled={busy} onClick={() => action('close')}>
@@ -341,7 +384,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 !detail.data?.photos.some((p) => p.kind === 'after')
               )
                 throw new Error(
-                  'Для аварийного наряда обязательно фото после работ',
+                  'Для внепланового наряда обязательно фото после работ',
                 )
               if (
                 materials.some(
