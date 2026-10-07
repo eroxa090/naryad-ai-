@@ -822,14 +822,147 @@ input[type='file']::file-selector-button {
 }
 .voice { display: grid; gap: 8px; margin-bottom: 8px; }
 .voice .heard { font-size: 1.1rem; font-weight: 700; background: #f1f1f1; border-left: 6px solid var(--primary); padding: 10px 12px; border-radius: 8px; margin: 0; }
+
+/* =====================================================================
+   Бренд «Промышленная маркировка»: графит, сигнальный жёлтый, полоса «осторожно».
+   Узкие заголовки как на заводских табличках (PT Sans Narrow), текст — Golos Text.
+   Контраст ≥ 7:1 сохранён; эффекты — только статичные заливки (дёшево для слабых телефонов).
+   ===================================================================== */
+:root {
+  --graphite: #17191c;
+  --graphite-2: #2a2e33;
+  --signal: #ffc400;
+  --paper-warm: #f6f4ef;
+  --go: #0e5a32;
+  --display: 'PT Sans Narrow', 'Arial Narrow', system-ui, sans-serif;
+  --body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --hazard: repeating-linear-gradient(-45deg, var(--signal) 0 14px, var(--graphite) 14px 28px);
+  font-family: var(--body);
+}
+body {
+  background-color: var(--paper-warm);
+  background-image: radial-gradient(rgba(23, 25, 28, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+h1, h2, h3, .brand, .stats strong, .eyebrow, .badge, nav a, .column h2 {
+  font-family: var(--display);
+}
+h1 { font-size: 2.1rem; letter-spacing: 0.005em; }
+h2 { font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.03em; }
+h3 { font-size: 1.25rem; }
+.eyebrow { font-size: 0.95rem; letter-spacing: 0.08em; color: var(--ink-2); }
+
+/* шапка: графитовая плашка + полоса «осторожно» */
+header {
+  background: var(--graphite); color: #fff; border-bottom: 0; position: relative; min-height: 76px;
+}
+header::after { content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px; background: var(--hazard); }
+header .brand { color: #fff; font-size: 1.9rem; text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 6px; }
+header .brand span, .login .brand span {
+  background: var(--signal); color: var(--graphite); padding: 0 8px; border-radius: 3px; line-height: 1.25;
+}
+header .user { color: #fff; }
+header .user small { color: #d6d6d6; }
+header > button.secondary, header .profile > summary { background: transparent; color: #fff; border-color: #fff; }
+header .telegram-connect summary { color: #fff; }
+header .language-switch button { background: transparent; color: #fff; border: 2px solid #fff; min-height: 48px; }
+header .language-switch button[aria-pressed='true'] { background: var(--signal); color: var(--graphite); border-color: var(--signal); }
+.profile[open] > div { color: var(--ink); }
+.profile[open] > div .language-switch button { color: var(--ink); border-color: var(--ink); }
+.profile[open] > div .language-switch button[aria-pressed='true'] { background: var(--signal); border-color: var(--graphite); }
+
+/* навигация: компьютер — белая полоса под шапкой, активный пункт — сигнальная плашка */
+nav { background: #fff; border-bottom: 2px solid var(--graphite); padding-top: 18px; }
+nav a { text-transform: uppercase; letter-spacing: 0.04em; font-size: 1.05rem; border-radius: 6px; }
+nav a.active { background: var(--signal); color: var(--graphite); box-shadow: inset 0 -4px 0 var(--graphite) !important; }
+
+/* вход: тёмная сцена с полосой, карточка-табличка */
+.login { background: var(--graphite); position: relative; padding: 24px 16px; }
+.login::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 14px; background: var(--hazard); }
+.login .panel { border: 0; border-top: 10px solid var(--signal); border-radius: 6px; }
+.login .brand { font-size: 2.6rem; text-transform: uppercase; letter-spacing: 0.04em; display: inline-flex; gap: 8px; align-items: center; }
+.login h1 { font-size: 2rem; }
+
+/* панели и плитки */
+.panel { border: 2px solid #d9d5cc; border-radius: 8px; }
+.stats { gap: 14px; }
+.stats .panel { border-top: 8px solid var(--graphite); padding: 16px 18px; }
+.stats .panel:nth-child(1) { border-top-color: var(--info); }
+.stats .panel:nth-child(2) { border-top-color: var(--go); }
+.stats .panel:nth-child(3) { border-top-color: var(--danger); }
+.stats .panel:nth-child(4) { border-top-color: var(--signal); }
+.stats strong { font-size: 3.2rem; line-height: 1; letter-spacing: -0.01em; }
+.stats span { color: var(--ink-2); font-weight: 600; }
+
+/* канбан мастера: колонки-лотки с цветной кромкой статуса */
+.column { background: #ece8df; border: 2px solid #d9d5cc; border-top: 8px solid var(--graphite-2); border-radius: 8px; }
+.column h2 { font-size: 1.15rem; align-items: center; }
+.column h2 small { background: var(--graphite); color: #fff; border-radius: 4px; padding: 0 8px; font-size: 1rem; }
+.column[data-status='issued'] { border-top-color: var(--info); }
+.column[data-status='accepted'] { border-top-color: var(--go); }
+.column[data-status='in_progress'], .column[data-status='paused'] { border-top-color: var(--signal); }
+.column[data-status='submitted'] { border-top-color: #3a0ca3; }
+.column[data-status='needs_rework'], .column[data-status='rejected'] { border-top-color: var(--danger); }
+.column.over { outline: 4px dashed var(--graphite); }
+.order { border: 2px solid #cfcac0; border-radius: 6px; }
+.order h3 { margin: 6px 0; }
+.order .drag { min-height: 44px; font-size: 0.85rem; padding: 6px 12px; }
+
+/* статусы — как наклейки-маркировки */
+.badge { border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.95rem; }
+
+/* карточки рабочего */
+.my-card { border: 2px solid var(--graphite); border-radius: 8px; border-left: 10px solid var(--graphite-2); }
+.my-card.emergency { border-color: var(--danger); border-left: 14px solid var(--danger); background: linear-gradient(90deg, #fff1f1, #fff 40%); }
+.my-card .eq { font-family: var(--display); font-size: 1.7rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.my-card .due { display: inline-block; background: var(--graphite); color: #fff; padding: 4px 10px; border-radius: 4px; }
+.my-card .due.late { background: var(--danger); color: #fff; }
+.empty { background: #fff; border: 3px dashed #bdb7aa; }
+
+/* кнопки */
+button, .button { border-radius: 6px; letter-spacing: 0.01em; }
+button.big { font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* карта здоровья: заливки-сигналы */
+.risk-grid button { min-height: 76px; border: 2px solid var(--graphite); font-weight: 800; }
+.risk-grid small { display: block; font-family: var(--display); font-size: 1.1rem; }
+.risk-high { background: var(--danger); color: #fff; }
+.risk-medium { background: var(--signal); color: var(--graphite); }
+.risk-low { background: var(--go); color: #fff; }
+.risk-unknown { background: #e4e1da; color: var(--ink); }
+.insights { display: grid; gap: 12px; margin-bottom: 12px; }
+.insights .notice { background: #fff; border: 2px solid var(--graphite); border-left: 10px solid var(--signal); }
+
+/* уведомления и мелочи */
+.notice { border-radius: 6px; border-left-width: 8px; }
+.back { font-weight: 800; }
+.voice .heard { border-left-color: var(--signal); background: #fff; border: 2px solid var(--graphite); border-left-width: 8px; }
+
+@media (max-width: 700px) {
+  header { min-height: 64px; }
+  header .brand { font-size: 1.55rem; }
+  h1 { font-size: 1.85rem; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stats strong { font-size: 2.6rem; }
+  nav { background: var(--graphite); border-top: 0; border-bottom: 0; padding-top: 0; }
+  nav::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; height: 6px; background: var(--hazard); }
+  nav a, nav button { color: #fff; background: transparent; text-transform: none; letter-spacing: 0; }
+  nav a.active { background: var(--signal); color: var(--graphite); box-shadow: none !important; }
+  .action-bar { border-top: 0; }
+  .action-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; height: 6px; background: var(--hazard); }
+}
+.login .language-switch button { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+.login .language-switch button[aria-pressed='true'] { background: var(--signal); color: var(--graphite); border-color: var(--graphite); }
+.login form button { width: 100%; min-height: 72px; font-family: var(--display); font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.risk-grid button small, button small, .badge small { color: inherit; opacity: 1; }
 /* отчёты: таблицы и переключатель группировки */
 .segmented { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
 .segmented button { flex: 1 1 160px; }
-.segmented button[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
-.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 2px solid var(--line-soft); border-radius: 10px; }
+.segmented button[aria-pressed='true'] { background: var(--signal); color: var(--graphite); border-color: var(--graphite); }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 2px solid var(--graphite); border-radius: 6px; }
 .report-table { width: 100%; border-collapse: collapse; font-size: 1rem; }
 .report-table th, .report-table td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 2px solid var(--line-soft); }
-.report-table th { background: #f1f1f1; font-weight: 800; white-space: nowrap; }
+.report-table th { background: var(--graphite); color: #fff; font-weight: 800; white-space: nowrap; }
 .report-table td.num { font-weight: 900; white-space: nowrap; }
 .report-table tr.over td { background: #fff7cc; }
 .report-table tr.over td:first-child { border-left: 8px solid var(--danger); }
@@ -846,8 +979,8 @@ nav .ico.bell .count {
   font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; font-style: normal;
 }
 .notifications { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
-.notifications li { padding: 14px 16px; border: 2px solid var(--line-soft); border-radius: 12px; background: var(--paper); }
-.notifications li.unread { border: 2px solid var(--line); border-left: 12px solid var(--info); }
+.notifications li { padding: 14px 16px; border: 2px solid var(--line-soft); border-radius: 8px; background: var(--paper); }
+.notifications li.unread { border: 2px solid var(--graphite); border-left: 12px solid var(--signal); }
 .notifications li.read { color: var(--ink-2); }
 .notifications li p { margin: 8px 0 10px; font-size: 1.05rem; }
 .notifications .actions { display: flex; flex-wrap: wrap; gap: 10px; }
