@@ -20,6 +20,7 @@ import type { Employee, Order, OrderStatus } from '../../shared/types'
 import { type AppData, dateLabel, liveLabels } from '../lib/data'
 import { changeStatus } from '../lib/offline'
 import { message } from '../lib/supabase'
+import { WorkerHome } from './WorkerHome'
 function Card({
   order,
   data,
@@ -127,6 +128,8 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
   if (start.getHours() < 8) start.setDate(start.getDate() - 1)
   start.setHours(now.getHours() >= 8 && now.getHours() < 20 ? 8 : 20, 0, 0, 0)
   const shiftOrders = data.orders.filter((o) => new Date(o.created_at) >= start)
+  // У рабочего свой экран: один список «что делать сейчас», без фильтров и канбана мастера.
+  if (isWorker) return <WorkerHome data={data} me={me} />
   return (
     <>
       <div className="page-title">

@@ -673,3 +673,150 @@ footer {
   width: auto;
   margin: 0 0 16px;
 }
+
+/* =====================================================================
+   Полевая тема: цех, улица, перчатки, слабые телефоны.
+   - контраст текста ≥ 7:1 (WCAG AAA) — читается на солнце;
+   - системный шрифт, без теней, размытий и анимаций — быстро на дешёвых Android;
+   - кнопки ≥ 64px, главная кнопка 72px, промежутки ≥ 12px — нажимается в перчатках;
+   - статус всегда = цвет + иконка + текст (не только цвет).
+   ===================================================================== */
+:root {
+  --ink: #0b0b0b;
+  --ink-2: #333;
+  --paper: #fff;
+  --line: #222;
+  --line-soft: #c8c8c8;
+  --primary: #0b5a38;
+  --danger: #a4161a;
+  --warn-bg: #ffd400;
+  --info: #0b3d91;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--paper);
+}
+body { background: var(--paper); color: var(--ink); }
+*, *::before, *::after { box-shadow: none !important; text-shadow: none !important; transition: none !important; animation: none !important; }
+h1 { font-size: 1.7rem; line-height: 1.2; margin: 8px 0 12px; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.15rem; }
+small, .eyebrow, .muted { color: var(--ink-2); }
+.eyebrow { font-weight: 800; letter-spacing: 0.04em; }
+
+button, .button {
+  min-height: 64px; padding: 14px 20px; border-radius: 10px;
+  font-size: 1.05rem; font-weight: 800; background: var(--primary); color: #fff;
+  border: 2px solid var(--primary);
+}
+button:hover, .button:hover { filter: none; }
+button:active, .button:active { transform: translateY(1px); }
+button.secondary, .button.secondary { background: var(--paper); color: var(--ink); border: 2px solid var(--line); }
+button.danger, .danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+button.big { min-height: 72px; font-size: 1.2rem; width: 100%; }
+button:disabled { opacity: 0.45; }
+.actions { gap: 12px; }
+
+input, select, textarea { min-height: 60px; border: 2px solid var(--line); border-radius: 10px; font-size: 1.05rem; color: var(--ink); }
+label { font-weight: 700; }
+:focus-visible { outline: 4px solid var(--warn-bg) !important; outline-offset: 2px; box-shadow: 0 0 0 7px var(--ink) !important; }
+
+.panel { background: var(--paper); border: 2px solid var(--line-soft); border-radius: 12px; }
+.notice { background: #fff7cc; border: 2px solid #8a6d00; color: var(--ink); border-radius: 10px; }
+.error { color: var(--danger); font-weight: 700; }
+
+/* статусы: цвет + иконка + текст */
+.badge { font-weight: 800; font-size: 0.95rem; border-radius: 8px; padding: 4px 10px; border: 2px solid transparent; }
+.badge.issued { background: var(--info); color: #fff; }
+.badge.issued::before { content: '📩 '; }
+.badge.accepted { background: var(--primary); color: #fff; }
+.badge.accepted::before { content: '✔ '; }
+.badge.queued { background: #fff; color: var(--ink); border-color: var(--ink); }
+.badge.queued::before { content: '⏳ '; }
+.badge.in_progress { background: var(--warn-bg); color: var(--ink); border-color: var(--ink); }
+.badge.in_progress::before { content: '🔧 '; }
+.badge.paused { background: #ffb703; color: var(--ink); border-color: var(--ink); }
+.badge.paused::before { content: '⏸ '; }
+.badge.submitted { background: #3a0ca3; color: #fff; }
+.badge.submitted::before { content: '📤 '; }
+.badge.needs_rework { background: var(--danger); color: #fff; }
+.badge.needs_rework::before { content: '🔁 '; }
+.badge.closed { background: #2b2b2b; color: #fff; }
+.badge.closed::before { content: '🏁 '; }
+.badge.rejected, .badge.cancelled { background: #5c5c5c; color: #fff; }
+.badge.emergency { background: var(--danger); color: #fff; }
+.badge.emergency::before { content: '🚨 '; }
+
+.order { border: 2px solid var(--line-soft); border-radius: 12px; background: var(--paper); }
+.order.emergency { border: 3px solid var(--danger); border-left-width: 12px; }
+
+/* шапка: компактная, редкие действия — в «Профиле» */
+header { gap: 10px; padding: 10px 14px; border-bottom: 2px solid var(--line-soft); background: var(--paper); }
+.brand { font-size: 1.35rem; font-weight: 900; color: var(--ink); }
+.brand span { color: var(--primary); }
+.profile { margin-left: auto; position: relative; }
+.profile > summary { list-style: none; min-height: 56px; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 2px solid var(--line); border-radius: 10px; font-weight: 800; cursor: pointer; }
+.profile > summary::-webkit-details-marker { display: none; }
+.profile[open] > div { position: absolute; right: 0; top: 64px; z-index: 30; width: min(92vw, 360px); background: var(--paper); border: 2px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; }
+.profile .who { font-size: 1.05rem; }
+
+/* навигация: на телефоне — крупная нижняя панель под большой палец */
+nav a { min-height: 56px; display: inline-flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); }
+nav a.active { background: var(--primary); color: #fff; }
+nav a .ico { font-size: 1.3rem; }
+
+/* экран рабочего: один список, самое срочное сверху */
+.my-orders { display: grid; gap: 14px; }
+.my-card { display: block; padding: 16px; border: 2px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--ink); text-decoration: none !important; }
+.my-card.emergency { border: 3px solid var(--danger); border-left-width: 14px; }
+.my-card .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.my-card .eq { font-size: 1.3rem; font-weight: 900; margin: 8px 0 4px; }
+.my-card .desc { margin: 0 0 8px; }
+.my-card .due { font-weight: 800; font-size: 1.05rem; }
+.my-card .due.late { color: var(--danger); }
+.my-card .open { margin-top: 12px; width: 100%; pointer-events: none; }
+.empty { text-align: center; padding: 28px 16px; border: 2px dashed var(--line-soft); border-radius: 14px; }
+.empty .big-ico { font-size: 3rem; display: block; }
+.tg-banner { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+/* главное действие рабочего прилипает к низу экрана */
+.action-bar { position: sticky; bottom: 0; z-index: 20; background: var(--paper); border-top: 2px solid var(--line); padding: 12px 0; display: grid; gap: 10px; margin: 16px 0 0; }
+.action-bar .more { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+@media (max-width: 700px) {
+  :root { font-size: 17px; }
+  main { padding: 12px 14px 100px; }
+  header { flex-wrap: nowrap; }
+  header > .language-switch, header > .telegram-connect, header > .user, header > button.secondary { display: none; }
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid;
+    grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; padding: 0;
+    background: var(--paper); border-top: 2px solid var(--line);
+  }
+  nav a, nav button { min-height: 68px; border-radius: 0; flex-direction: column; justify-content: center; gap: 2px; font-size: 0.8rem; padding: 6px 2px; text-align: center; }
+  nav a .ico { font-size: 1.5rem; }
+  .action-bar { bottom: 70px; }
+  .action-bar.worker-bar { position: fixed; left: 0; right: 0; padding: 10px 14px; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+@media print { .profile, nav, .action-bar { display: none !important; } }
+.profile { display: none; }
+@media (max-width: 700px) { .profile { display: block; } }
+.telegram-help { display: grid; gap: 8px; }
+.telegram-help code { font-size: 1rem; font-weight: 800; background: #f1f1f1; padding: 2px 6px; border-radius: 6px; }
+/* фото: крупная кнопка вместо мелкого системного поля */
+input[type='file'] { min-height: 72px; padding: 6px; border-style: dashed; }
+input[type='file']::file-selector-button {
+  min-height: 56px; margin-right: 12px; padding: 0 18px; border-radius: 8px;
+  border: 2px solid var(--primary); background: var(--primary); color: #fff; font-weight: 800; font-size: 1rem;
+}
+/* на экране наряда у рабочего нижнее меню прячем — место занимает панель действий */
+@media (max-width: 700px) {
+  body:has(.worker-bar) nav { display: none; }
+  .action-bar.worker-bar { bottom: 0; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+@media (max-width: 700px) {
+  nav { grid-auto-columns: minmax(0, 1fr); }
+  nav a, nav button { white-space: normal; line-height: 1.15; font-size: 0.72rem; overflow-wrap: normal; padding: 6px 1px; letter-spacing: -0.01em; }
+}

@@ -242,56 +242,64 @@ function Workspace({ session }: { session: Session }) {
     return <main aria-busy="true">{t('Загружаем смену…')}</main>
   const me = employee.data,
     master = ['master', 'admin'].includes(me.role),
-    reports = me.role !== 'worker'
+    reports = me.role !== 'worker',
+    roleLabel = master ? t('Мастер') : me.role === 'worker' ? t('Исполнитель') : t('Руководитель')
   return (
     <>
       <header>
-        <LanguageSwitch />
         <NavLink className="brand" to="/">
           {t('Наряд')}
           <span>AI</span>
         </NavLink>
+        <LanguageSwitch />
         <details className="telegram-connect">
           <summary>{t('Подключить Telegram')}</summary>
-          <div>
-            <a
-              className="button"
-              href="https://t.me/naryad_ai_kz_bot"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {t('Открыть бота')}
-            </a>
-            <p>{t('Отправьте боту команду:')}</p>
-            <code>{t('/start &lt;логин&gt; &lt;ПИН&gt;')}</code>
-            <p>
-              {t('Ваш логин:')}
-              <b>{me.login}</b>
-              {t('. Вместо &lt;ПИН&gt; введите свой шестизначный ПИН.')}
-            </p>
-          </div>
+          <TelegramHelp login={me.login} />
         </details>
         <span className="user">
           {me.full_name}
-          <small>
-            {master
-              ? t('Мастер')
-              : me.role === 'worker'
-                ? t('Исполнитель')
-                : t('Руководитель')}
-          </small>
+          <small>{roleLabel}</small>
         </span>
         <button className="secondary" onClick={signOut}>
           {t('Выйти')}
         </button>
+        <details className="profile">
+          <summary aria-label={t('Профиль')}>👤 {t('Профиль')}</summary>
+          <div>
+            <p className="who">
+              <b>{me.full_name}</b>
+              <br />
+              <small>{roleLabel}</small>
+            </p>
+            <LanguageSwitch />
+            <TelegramHelp login={me.login} />
+            <button className="secondary" onClick={signOut}>
+              {t('Выйти')}
+            </button>
+          </div>
+        </details>
       </header>
       <nav>
         <NavLink to="/orders">
-          {me.role === 'worker' ? t('Мои наряды') : t('Панель смены')}
+          <span className="ico" aria-hidden>📋</span>
+          {me.role === 'worker' ? t('Мои наряды') : t('Смена')}
         </NavLink>
-        {master && <NavLink to="/new">{t('＋ Создать наряд')}</NavLink>}
-        <NavLink to="/equipment">{t('Оборудование / QR')}</NavLink>
-        {reports && <NavLink to="/reports">{t('Отчёты и ИИ')}</NavLink>}
+        {master && (
+          <NavLink to="/new">
+            <span className="ico" aria-hidden>➕</span>
+            {t('Новый наряд')}
+          </NavLink>
+        )}
+        <NavLink to="/equipment">
+          <span className="ico" aria-hidden>🏭</span>
+          {t('Оборудование')}
+        </NavLink>
+        {reports && (
+          <NavLink to="/reports">
+            <span className="ico" aria-hidden>📊</span>
+            {t('Отчёты · ИИ')}
+          </NavLink>
+        )}
         {install && (
           <button
             onClick={async () => {
@@ -299,6 +307,7 @@ function Workspace({ session }: { session: Session }) {
               setInstall(null)
             }}
           >
+            <span className="ico" aria-hidden>⬇️</span>
             {t('Установить')}
           </button>
         )}
@@ -446,5 +455,18 @@ export default function App() {
         <AuthApp />
       </BrowserRouter>
     </QueryClientProvider>
+  )
+}
+
+function TelegramHelp({ login }: { login: string }) {
+  return (
+    <div className="telegram-help">
+      <a className="button" href="https://t.me/naryad_ai_kz_bot" target="_blank" rel="noreferrer">
+        ✈️ {t('Открыть бота')}
+      </a>
+      <p>
+        {t('Отправьте боту команду:')} <code>/start {login} ПИН</code>
+      </p>
+    </div>
   )
 }

@@ -263,7 +263,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
           </select>
         </label>
         <label>
-          Фото до работ · до 5
+          📷 Фото до работ · до 5
           <input
             type="file"
             accept="image/*"
