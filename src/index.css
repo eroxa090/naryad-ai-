@@ -838,3 +838,18 @@ input[type='file']::file-selector-button {
 .report-table .causes li { margin: 2px 0; }
 .split { height: 18px; min-width: 140px; border: 2px solid var(--ink); border-radius: 6px; background: repeating-linear-gradient(45deg, #fff, #fff 4px, #d8d8d8 4px, #d8d8d8 8px); overflow: hidden; margin-bottom: 4px; }
 .split span { display: block; height: 100%; background: var(--danger); }
+/* уведомления: колокольчик со счётчиком и список */
+nav .ico.bell { position: relative; display: inline-block; }
+nav .ico.bell .count {
+  position: absolute; top: -8px; right: -14px; min-width: 24px; height: 24px; padding: 0 5px;
+  border-radius: 12px; background: var(--danger); color: #fff; border: 2px solid #fff;
+  font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; font-style: normal;
+}
+.notifications { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
+.notifications li { padding: 14px 16px; border: 2px solid var(--line-soft); border-radius: 12px; background: var(--paper); }
+.notifications li.unread { border: 2px solid var(--line); border-left: 12px solid var(--info); }
+.notifications li.read { color: var(--ink-2); }
+.notifications li p { margin: 8px 0 10px; font-size: 1.05rem; }
+.notifications .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.notifications .actions > * { flex: 1 1 200px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+.badge.new { margin-left: 8px; background: var(--info); color: #fff; }

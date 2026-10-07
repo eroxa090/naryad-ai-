@@ -21,6 +21,7 @@ import {
   type PendingAction,
 } from './lib/offline'
 import { useData } from './lib/data'
+import { useUnreadCount } from './lib/notifications'
 import { Board } from './pages/Board'
 import { CreateOrder } from './pages/CreateOrder'
 import { OrderDetail } from './pages/OrderDetail'
@@ -32,6 +33,11 @@ const PrintQR = lazy(() =>
 )
 const Reports = lazy(() =>
   import('./pages/Reports').then((m) => ({ default: m.Reports })),
+)
+const NotificationsPage = lazy(() =>
+  import('./pages/Notifications').then((m) => ({
+    default: m.NotificationsPage,
+  })),
 )
 function Login() {
   const [error, setError] = useState('')
@@ -300,6 +306,7 @@ function Workspace({ session }: { session: Session }) {
             {t('Отчёты · ИИ')}
           </NavLink>
         )}
+        <NotificationsLink me={me} />
         {install && (
           <button
             onClick={async () => {
@@ -394,6 +401,10 @@ function Workspace({ session }: { session: Session }) {
               }
             />
             <Route
+              path="/notifications"
+              element={<NotificationsPage data={data.data} me={me} />}
+            />
+            <Route
               path="/equipment"
               element={<EquipmentPage data={data.data} canCreate={master} />}
             />
@@ -455,6 +466,28 @@ export default function App() {
         <AuthApp />
       </BrowserRouter>
     </QueryClientProvider>
+  )
+}
+
+function NotificationsLink({ me }: { me: Employee }) {
+  const unread = useUnreadCount(me).data ?? 0
+  return (
+    <NavLink
+      to="/notifications"
+      aria-label={
+        unread
+          ? `${t('Уведомления')}: ${t('непрочитанных')} ${unread}`
+          : t('Уведомления')
+      }
+    >
+      <span className="ico bell" aria-hidden>
+        🔔
+        {unread > 0 && (
+          <b className="count">{unread > 99 ? '99+' : unread}</b>
+        )}
+      </span>
+      {t('Уведомления')}
+    </NavLink>
   )
 }
 
