@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AppData } from '../lib/data'
 import { message, queryClient, supabase } from '../lib/supabase'
 import { t } from '../lib/i18n'
@@ -12,11 +12,11 @@ interface Field {
   options?: [string, string][]
   required?: boolean
   optional?: boolean // пустое значение сохраняем как null
-  step?: string
   min?: number
   max?: number
   createOnly?: boolean // первичный ключ, который задаёт человек
   numeric?: boolean // select с числовыми значениями (id, критичность)
+  data?: boolean // варианты — данные из базы (названия участков), не переводим
 }
 interface Entity {
   table: string
@@ -50,6 +50,7 @@ function entities(data: AppData): Entity[] {
           label: 'Участок',
           kind: 'select',
           numeric: true,
+          data: true,
           required: true,
           options: data.sites.map((s) => [String(s.id), s.name]),
         },
@@ -120,7 +121,6 @@ function entities(data: AppData): Entity[] {
           label: 'Типичное количество',
           kind: 'number',
           required: true,
-          step: '0.01',
           min: 0,
         },
       ],
@@ -151,7 +151,6 @@ function entities(data: AppData): Entity[] {
           label: 'Норма, ч',
           kind: 'number',
           required: true,
-          step: '0.25',
           min: 0,
         },
       ],
@@ -163,7 +162,7 @@ const show = (field: Field, value: unknown) => {
   if (field.kind === 'checkbox') return value ? t('Да') : t('Нет')
   if (value === null || value === undefined || value === '') return '—'
   const option = field.options?.find(([v]) => v === String(value))
-  return option ? t(option[1]) : String(value)
+  return option ? (field.data ? option[1] : t(option[1])) : String(value)
 }
 
 export function AdminPage({ data }: { data: AppData }) {
@@ -176,6 +175,10 @@ export function AdminPage({ data }: { data: AppData }) {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState('')
   const entity = all.find((e) => e.table === table)!
+  const formRef = useRef<HTMLFormElement>(null)
+  useEffect(() => {
+    if (editing) formRef.current?.scrollIntoView?.({ block: 'start' })
+  }, [editing])
 
   function open(row: Record<string, unknown> | null) {
     setError('')
@@ -211,7 +214,11 @@ export function AdminPage({ data }: { data: AppData }) {
             values[f.key] = null
           } else if (f.kind === 'number' || f.numeric) {
             const n = Number(text.replace(',', '.'))
-            if (!Number.isFinite(n))
+            if (
+              !Number.isFinite(n) ||
+              (f.min !== undefined && n < f.min) ||
+              (f.max !== undefined && n > f.max)
+            )
               throw new Error(`${t('Введите число в поле')} «${t(f.label)}»`)
             values[f.key] = n
           } else values[f.key] = text
@@ -227,8 +234,11 @@ export function AdminPage({ data }: { data: AppData }) {
                 entity.pk,
                 entity.pk === 'id' ? Number(editing) : (editing as string),
               )
-      const { error } = await query
+      // RLS не возвращает ошибку, если строку нельзя менять, — просто 0 строк.
+      const { data: changed, error } = await query.select(entity.pk)
       if (error) throw error
+      if (!changed?.length)
+        throw new Error(t('Нет прав на изменение или запись не найдена'))
       await queryClient.invalidateQueries({ queryKey: ['data'] })
       setSaved(editing === 'new' ? t('Запись добавлена') : t('Изменения сохранены'))
       setEditing(null)
@@ -280,6 +290,7 @@ export function AdminPage({ data }: { data: AppData }) {
 
       {editing ? (
         <form
+          ref={formRef}
           className="panel form admin-form"
           onSubmit={(e) => {
             e.preventDefault()
@@ -315,7 +326,7 @@ export function AdminPage({ data }: { data: AppData }) {
                   >
                     {f.options?.map(([v, label]) => (
                       <option key={v} value={v}>
-                        {t(label)}
+                        {f.data ? label : t(label)}
                       </option>
                     ))}
                   </select>
@@ -326,11 +337,9 @@ export function AdminPage({ data }: { data: AppData }) {
                   <input
                     required={f.required}
                     disabled={f.createOnly && editing !== 'new'}
-                    type={f.kind === 'number' ? 'number' : 'text'}
+                    // text + decimal: в number-поле запятая («1,5») даёт пустое значение
+                    type="text"
                     inputMode={f.kind === 'number' ? 'decimal' : undefined}
-                    step={f.step}
-                    min={f.min}
-                    max={f.max}
                     value={String(draft[f.key] ?? '')}
                     onChange={(e) =>
                       setDraft({ ...draft, [f.key]: e.target.value })
@@ -396,17 +405,16 @@ export function AdminPage({ data }: { data: AppData }) {
                   editing === String(r[entity.pk]) ? 'editing' : undefined
                 }
               >
-                {entity.fields.map((f) => (
-                  <td key={f.key}>{show(f, r[f.key])}</td>
+                {entity.fields.map((f, i) => (
+                  <td key={f.key} data-label={i ? t(f.label) : undefined}>
+                    {show(f, r[f.key])}
+                  </td>
                 ))}
-                <td>
+                <td className="row-action">
                   <button
                     type="button"
                     className="secondary"
-                    onClick={() => {
-                      open(r)
-                      window.scrollTo({ top: 0 })
-                    }}
+                    onClick={() => open(r)}
                   >
                     ✏️ {t('Изменить')}
                   </button>

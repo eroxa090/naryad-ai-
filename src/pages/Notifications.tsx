@@ -54,7 +54,7 @@ export function NotificationsPage({
     }
   }
   if (list.isPending) return <p aria-busy="true">{t('Загрузка…')}</p>
-  if (list.error)
+  if (!list.data)
     return (
       <p role="alert" className="error">
         {message(list.error)}{' '}
@@ -64,12 +64,12 @@ export function NotificationsPage({
   const unread = list.data.filter((n) => !n.read_at).length
   return (
     <>
-      <div className="page-title">
-        <h1>
-          🔔 {t('Уведомления')}
-          {unread > 0 && <small> · {t('непрочитанных')}: {unread}</small>}
-        </h1>
-      </div>
+      <h1>🔔 {t('Уведомления')}</h1>
+      {unread > 0 && (
+        <p className="unread-total">
+          {t('непрочитанных')}: <b>{unread}</b>
+        </p>
+      )}
       {unread > 0 && (
         <button
           className="secondary big"
@@ -101,29 +101,31 @@ export function NotificationsPage({
                   <small>{dateLabel(n.created_at)}</small>
                 </div>
                 <p>{n.text}</p>
-                <div className="actions">
-                  {n.order_id && (
-                    <Link
-                      className="button"
-                      to={`/orders/${n.order_id}`}
-                      onClick={() => {
-                        if (!n.read_at) void markRead(me, n.id).catch(() => {})
-                      }}
-                    >
-                      {t('Открыть наряд')}
-                      {order ? ` №${order.number}` : ''}
-                    </Link>
-                  )}
-                  {!n.read_at && (
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => void run(() => markRead(me, n.id))}
-                    >
-                      ✔ {t('Прочитано')}
-                    </button>
-                  )}
-                </div>
+                {(n.order_id || !n.read_at) && (
+                  <div className="actions">
+                    {n.order_id && (
+                      <Link
+                        className="button"
+                        to={`/orders/${n.order_id}`}
+                        onClick={() => {
+                          if (!n.read_at) void markRead(me, n.id).catch(() => {})
+                        }}
+                      >
+                        {t('Открыть наряд')}
+                        {order ? ` №${order.number}` : ''}
+                      </Link>
+                    )}
+                    {!n.read_at && (
+                      <button
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => void run(() => markRead(me, n.id))}
+                      >
+                        ✔ {t('Прочитано')}
+                      </button>
+                    )}
+                  </div>
+                )}
               </li>
             )
           })}

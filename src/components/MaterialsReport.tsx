@@ -8,11 +8,12 @@ import { exportExcel } from '../lib/export'
 import { t } from '../lib/i18n'
 
 type Group = 'material' | 'site' | 'equipment' | 'worker'
-const GROUPS: [Group, string][] = [
-  ['material', 'По материалу'],
-  ['site', 'По участку'],
-  ['equipment', 'По оборудованию'],
-  ['worker', 'По исполнителю'],
+// [группировка, кнопка, заголовок первого столбца]
+const GROUPS: [Group, string, string][] = [
+  ['material', 'По материалу', 'Материал'],
+  ['site', 'По участку', 'Участок'],
+  ['equipment', 'По оборудованию', 'Оборудование'],
+  ['worker', 'По исполнителю', 'Исполнитель'],
 ]
 // Порог перерасхода: списано в 1,5 раза больше типичного количества.
 const OVER = 1.5
@@ -52,7 +53,7 @@ export function MaterialsReport({
         <p>{t('Загружаем списания…')}</p>
       </section>
     )
-  if (usage.error)
+  if (usage.error && !usage.data)
     return (
       <section className="panel">
         <h2>{t('Списанные материалы')}</h2>
@@ -63,6 +64,7 @@ export function MaterialsReport({
       </section>
     )
 
+  if (!usage.data) return null
   const byOrder = new Map(orders.map((o) => [o.id, o]))
   const table = new Map<string, Row>()
   for (const line of usage.data) {
@@ -127,7 +129,7 @@ export function MaterialsReport({
   const fmt = (n: number) =>
     n.toLocaleString('ru-RU', { maximumFractionDigits: 1 })
   const isMaterial = group === 'material'
-  const groupLabel = t(GROUPS.find(([g]) => g === group)![1])
+  const groupLabel = t(GROUPS.find(([g]) => g === group)![2])
 
   const exportRows = list.map((r) => {
     const ratio = ratioOf(r)
@@ -197,23 +199,23 @@ export function MaterialsReport({
                       {over && <span aria-hidden>⚠️ </span>}
                       <b>{r.name}</b>
                     </td>
-                    <td>{r.orders.size}</td>
+                    <td data-label={t('Нарядов')}>{r.orders.size}</td>
                     {isMaterial ? (
                       <>
-                        <td>
+                        <td data-label={t('Списано')}>
                           {fmt(r.qty)} {r.unit}
                         </td>
-                        <td>
+                        <td data-label={t('Норма')}>
                           {fmt(r.norm)} {r.unit}
                         </td>
                       </>
                     ) : (
-                      <td>{r.lines}</td>
+                      <td data-label={t('Позиций')}>{r.lines}</td>
                     )}
-                    <td className="num">
+                    <td className="num" data-label={t('Кратность нормы')}>
                       {ratio === null ? '—' : `×${ratio.toFixed(2)}`}
                     </td>
-                    <td>
+                    <td data-label={t('Перерасход')}>
                       {r.over
                         ? `${r.over} ${t('из')} ${r.lines}`
                         : t('нет')}

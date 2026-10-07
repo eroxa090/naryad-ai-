@@ -281,6 +281,11 @@ function Workspace({ session }: { session: Session }) {
               <small>{roleLabel}</small>
             </p>
             <LanguageSwitch />
+            {me.role === 'admin' && (
+              <NavLink className="button secondary" to="/admin">
+                ⚙️ {t('Справочники')}
+              </NavLink>
+            )}
             <TelegramHelp login={me.login} />
             <button className="secondary" onClick={signOut}>
               {t('Выйти')}
@@ -310,7 +315,7 @@ function Workspace({ session }: { session: Session }) {
           </NavLink>
         )}
         {me.role === 'admin' && (
-          <NavLink to="/admin">
+          <NavLink to="/admin" className="nav-admin">
             <span className="ico" aria-hidden>⚙️</span>
             {t('Справочники')}
           </NavLink>
@@ -493,6 +498,7 @@ function NotificationsLink({ me }: { me: Employee }) {
   return (
     <NavLink
       to="/notifications"
+      className="nav-bell"
       aria-label={
         unread
           ? `${t('Уведомления')}: ${t('непрочитанных')} ${unread}`
@@ -505,7 +511,7 @@ function NotificationsLink({ me }: { me: Employee }) {
           <b className="count">{unread > 99 ? '99+' : unread}</b>
         )}
       </span>
-      {t('Уведомления')}
+      <span className="nav-label">{t('Уведомления')}</span>
     </NavLink>
   )
 }
