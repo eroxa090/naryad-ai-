@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { message } from '../lib/supabase'
@@ -24,7 +25,9 @@ export function Voice({
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw new Error(
-          'Запись недоступна. Введите текст вручную; микрофон требует HTTPS.',
+          t(
+            'Запись недоступна. Введите текст вручную; микрофон требует HTTPS.',
+          ),
         )
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const r = new MediaRecorder(stream)
@@ -38,7 +41,7 @@ export function Voice({
           const blob = new Blob(chunks, { type: r.mimeType })
           if (blob.size > 8 * 1024 * 1024)
             throw new Error(
-              'Запись слишком длинная. Запишите короткое описание.',
+              t('Запись слишком длинная. Запишите короткое описание.'),
             )
           const audio_base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader()
@@ -73,10 +76,10 @@ export function Voice({
         }
       >
         {state === 'recording'
-          ? '■ Закончить запись'
+          ? t('■ Закончить запись')
           : state === 'loading'
-            ? 'Распознаём…'
-            : '🎙 Нажмите и продиктуйте'}
+            ? t('Распознаём…')
+            : t('🎙 Нажмите и продиктуйте')}
       </button>
       {error && (
         <p role="alert" className="error">
