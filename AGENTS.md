@@ -11,7 +11,7 @@
 - БД / авторизация / realtime / фото / cron: Supabase (Postgres, Auth, Realtime, Storage, pg_cron + pg_net)
 - Серверные функции: Vercel Functions в папке `/api` (TypeScript, Node)
 - ИИ: Anthropic SDK `@anthropic-ai/sdk`; Whisper через Groq
-- Аналитика: Python (pandas, scikit-learn) в `/analytics`, запускается скриптом, пишет результат в таблицу `ai_insights`
+- Аналитика: TypeScript (`api/ai/_lib/analytics.ts`) — статистика по истории нарядов, пишет в `ai_insights`; пересчёт `POST /api/ai/insights`, раз в сутки из cron и в конце `npm run seed`
 - Уведомления: Telegram-бот (grammY) + звук/баннер в приложении через Supabase Realtime
 
 ## Зоны ответственности (кто какие файлы трогает)
@@ -19,7 +19,7 @@
 |---|---|---|
 | Бэкенд и данные | **Человек 1** | `supabase/**`, `shared/**`, `api/_lib/**`, `api/orders/**`, `api/cron/**`, `api/telegram/**`, `api/notify/**`, `package.json`, `vercel.json`, `.env.example` |
 | Фронтенд | **Человек 2** | `src/**`, `public/**`, `index.html`, `vite.config.ts`, `tailwind.config.*` |
-| ИИ и аналитика | **Человек 3** | `api/ai/**`, `analytics/**` |
+| ИИ и аналитика | **Человек 3** (сейчас ведёт Человек 1) | `api/ai/**` |
 
 Правила git:
 - Ветки: `backend`, `frontend`, `ai`. Мержим в `main` через PR маленькими кусками, минимум 2–3 раза в день.
@@ -37,7 +37,8 @@ ANTHROPIC_API_KEY=              # только сервер
 GROQ_API_KEY=                   # только сервер
 TELEGRAM_BOT_TOKEN=             # только сервер
 CRON_SECRET=                    # общий секрет для /api/cron/*
-AI_MOCK=true                    # true = ИИ-эндпоинты отдают заглушки и не тратят деньги
+AI_MOCK=true                    # true = LLM не вызывается (правила, антифрод и статистика работают всегда); false + ключ = LLM
+VITE_AI_CLIENT_MOCK=            # true = фронт вообще не ходит в /api/ai (только офлайн-разработка)
 AI_MODEL_FAST=claude-haiku-4-5
 AI_MODEL_SMART=claude-haiku-4-5 # на финальное демо и видео переключить на claude-sonnet-5-5
 ```
@@ -103,7 +104,10 @@ EXIF `taken_at` фронт читает ДО сжатия (сжатие стир
 
 `/api/ai/assistant` также вызывается Telegram-ботом от сервера: без Bearer, с заголовком `x-internal-secret: <CRON_SECRET>` и полем `employee_id` в теле. Такой вызов нужно принимать.
 
-Аналитика: `python analytics/run.py` считает аномалии и прогнозы и пишет строки в `ai_insights`. Фронт читает таблицу напрямую.
+| `/api/ai/insights` | `{}` (мастер/руководитель или `x-cron-secret`) | `{ insights }` — пересчитывает `ai_insights` |
+
+Формат `ai_insights`: `kind` ∈ top_equipment, repeat_fault, after_ppr, shift_pattern, worker_pattern, materials_anomaly, equipment_risk, weekly_summary. Для `equipment_risk`: `data.equipment_id`, `data.risk` (0..1), `data.next_failure_days`. Фронт читает таблицу напрямую.
+`check-order` повторно не тратит деньги: если проверка этого отчёта уже есть, возвращает её (`force: true` — перепроверить).
 
 ## Эндпоинты Человека 1
 - `POST /api/orders/notify-new { order_id }`: push исполнителю о новом наряде (Telegram с кнопками «Принять» и «В очередь», плюс запись в `notifications`).

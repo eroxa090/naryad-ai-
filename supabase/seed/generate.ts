@@ -278,7 +278,7 @@ async function main() {
   // внеплановые: (1) К-3 весит в 3 раза больше, в основном М-02
   const base = 540
   for (let i = 0; i < base; i++) {
-    const e = weighted(equipment, (x: any) => (x.id === K3.id ? 3.3 : 1))
+    const e = weighted(equipment, (x: any) => (x.id === K3.id ? 3.3 : x.id === KMD.id ? 0.4 : 1))
     const fault = e.id === K3.id && rnd() < 0.7 ? 'М-02' : pick(FAULT_BY_TYPE[e.type])
     const emergency = rnd() < 0.45
     plans.push({
@@ -474,6 +474,8 @@ async function main() {
   console.log(`  3) КМД-1750: ППР каждые ~14 дней, поломка через 3–5 дней после каждого`)
   console.log(`  4) Ночь + обогатительная фабрика: реакция x2.2`)
   console.log(`  5) Петров: расход материалов x2–3`)
+  const { runAnalytics } = await import('../../api/ai/_lib/analytics.js')
+  console.log(`  ИИ-аналитика: ${await runAnalytics()} выводов записано в ai_insights`)
   console.log(`\nВсего нарядов: ${orders.length + active.length}. Аккаунты: master1, master2, manager1, admin1, worker1..worker15, ПИН ${PIN}`)
 }
 

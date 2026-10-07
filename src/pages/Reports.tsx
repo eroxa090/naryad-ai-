@@ -331,6 +331,36 @@ function ReportContent({ data }: { data: AppData }) {
         )}
       </section>
       <section className="panel">
+        <h2>Выводы ИИ по истории нарядов</h2>
+        {insights.data?.some((i) => i.kind !== 'equipment_risk') ? (
+          <div className="insights">
+            {insights.data
+              .filter((i) => i.kind !== 'equipment_risk' && i.kind !== 'weekly_summary')
+              .map((i) => (
+                <article key={i.id} className="notice">
+                  <h3>{i.title}</h3>
+                  <p>{i.text}</p>
+                  {i.recommendation && <p><b>Рекомендация:</b> {i.recommendation}</p>}
+                </article>
+              ))}
+          </div>
+        ) : (
+          <p>Аналитика ещё не рассчитана.</p>
+        )}
+        <button
+          disabled={busy}
+          className="secondary"
+          onClick={() =>
+            void run(async () => {
+              await api.runInsights()
+              await insights.refetch()
+            })
+          }
+        >
+          Пересчитать аналитику
+        </button>
+      </section>
+      <section className="panel">
         <h2>Карта здоровья оборудования</h2>
         <p>
           Зелёный: риск &lt; 35%, жёлтый: 35–69%, красный: ≥70%. Серый: нет

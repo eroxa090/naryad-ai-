@@ -1,3 +1,4 @@
+import i18n from '../lib/i18n'
 import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -131,11 +132,11 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
       <div className="page-title">
         <div>
           <p className="eyebrow">
-            {now.toLocaleDateString('ru-RU', {
+            {now.toLocaleDateString(i18n.language === 'kk' ? 'kk-KZ' : 'ru-RU', {
               day: 'numeric',
               month: 'long',
             })}{' '}
-            {t('· смена')}
+            {t('· смена').trim()}{' '}
             {start.getHours() === 8 ? '08:00–20:00' : '20:00–08:00'}
           </p>
           <h1>{isWorker ? t('Мои наряды') : t('Панель смены')}</h1>

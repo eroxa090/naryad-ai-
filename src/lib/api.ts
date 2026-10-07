@@ -127,4 +127,5 @@ export const api = {
         })
       : post('/api/ai/assistant', body),
   notifyNew: (order_id: number) => post('/api/orders/notify-new', { order_id }),
+  runInsights: (): Promise<{ insights: number }> => post('/api/ai/insights', {}),
 }
