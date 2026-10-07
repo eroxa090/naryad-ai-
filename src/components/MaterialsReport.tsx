@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FileSpreadsheet, TriangleAlert } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { Order, OrderMaterial } from '../../shared/types'
 import type { AppData } from '../lib/data'
@@ -196,7 +197,13 @@ export function MaterialsReport({
                 return (
                   <tr key={r.key} className={over ? 'over' : undefined}>
                     <td>
-                      {over && <span aria-hidden>⚠️ </span>}
+                      {over && (
+                        <TriangleAlert
+                          className="warn-ico"
+                          aria-hidden
+                          size={20}
+                        />
+                      )}
                       <b>{r.name}</b>
                     </td>
                     <td data-label={t('Нарядов')}>{r.orders.size}</td>
@@ -253,7 +260,7 @@ export function MaterialsReport({
           }
         }}
       >
-        📥 Excel
+        <FileSpreadsheet aria-hidden size={20} /> Excel
       </button>
     </section>
   )

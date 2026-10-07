@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CircleCheckBig, Send, Timer, TriangleAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ORDER_STATUS_LABEL } from '../../shared/types'
 import type { Employee, Order } from '../../shared/types'
@@ -45,18 +46,23 @@ export function WorkerHome({ data, me }: { data: AppData; me: Employee }) {
         <div className="row">
           <span className="eyebrow">№ {o.number}</span>
           {o.priority === 'emergency' ? (
-            <span className="badge emergency">{t('АВАРИЙНЫЙ')}</span>
+            <span className="badge emergency">
+              <TriangleAlert aria-hidden size={16} /> {t('Аварийный')}
+            </span>
           ) : null}
           <span className={`badge ${o.status}`}>{t(ORDER_STATUS_LABEL[o.status])}</span>
         </div>
-        <p className="eq">{eq(o.equipment_id)?.name}</p>
-        <p className="desc">
-          {o.description} · <small>{site(o.site_id)}</small>
-        </p>
-        {ACTIVE.includes(o.status) && <p className={`due ${due.late ? 'late' : ''}`}>⏱ {due.text}</p>}
+        <p className="eq plate">{eq(o.equipment_id)?.name}</p>
+        <p className="desc">{o.description}</p>
+        <p className="site">{site(o.site_id)}</p>
+        {ACTIVE.includes(o.status) && (
+          <p className={`due ${due.late ? 'late' : ''}`}>
+            <Timer aria-hidden size={18} /> {due.text}
+          </p>
+        )}
         {ACTIVE.includes(o.status) && (
           <span className="button open" aria-hidden>
-            {t(NEXT_STEP[o.status] ?? 'Открыть')} →
+            {t(NEXT_STEP[o.status] ?? 'Открыть')}
           </span>
         )}
       </Link>
@@ -68,7 +74,9 @@ export function WorkerHome({ data, me }: { data: AppData; me: Employee }) {
       <h1>{t('Мои наряды')}</h1>
       {!me.telegram_chat_id && (
         <div className="notice tg-banner">
-          <span>✈️ {t('Подключите Telegram — новые наряды будут приходить со звуком.')}</span>
+          <span>
+            <Send aria-hidden size={20} /> {t('Подключите Telegram, чтобы новые наряды приходили со звуком.')}
+          </span>
           <a className="button secondary" href="https://t.me/naryad_ai_kz_bot" target="_blank" rel="noreferrer">
             {t('Подключить')}
           </a>
@@ -79,7 +87,7 @@ export function WorkerHome({ data, me }: { data: AppData; me: Employee }) {
           active.map(card)
         ) : (
           <div className="empty">
-            <span className="big-ico" aria-hidden>✅</span>
+            <CircleCheckBig className="big-ico" aria-hidden size={48} />
             <h2>{t('Активных нарядов нет')}</h2>
             <p>{t('Новый наряд появится здесь и придёт уведомлением.')}</p>
           </div>
@@ -87,7 +95,7 @@ export function WorkerHome({ data, me }: { data: AppData; me: Employee }) {
       </section>
       <details className="panel">
         <summary>
-          🏆 {t('Мой рейтинг:')} {rating ? `${Math.round(Number(rating.rating))} / 100` : t('пока нет закрытых нарядов')}
+          {t('Мой рейтинг:')} {rating ? `${Math.round(Number(rating.rating))} / 100` : t('пока нет закрытых нарядов')}
         </summary>
         {rating && (
           <ul>

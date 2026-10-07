@@ -1,3 +1,4 @@
+import { Bell, ChartColumn, ClipboardList, Download, Factory, Plus, Send, Settings, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitch } from './components/LanguageSwitch'
 import { t } from './lib/i18n'
@@ -81,6 +82,8 @@ function Login() {
               name="login"
               required
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               placeholder="master1"
               pattern="[A-Za-z0-9_.-]+"
             />
@@ -272,8 +275,11 @@ function Workspace({ session }: { session: Session }) {
         <button className="secondary" onClick={signOut}>
           {t('Выйти')}
         </button>
+        <NotificationsLink me={me} header />
         <details className="profile">
-          <summary aria-label={t('Профиль')}>👤 {t('Профиль')}</summary>
+          <summary aria-label={t('Профиль')}>
+            <UserRound aria-hidden size={22} /> {t('Профиль')}
+          </summary>
           <div>
             <p className="who">
               <b>{me.full_name}</b>
@@ -283,7 +289,7 @@ function Workspace({ session }: { session: Session }) {
             <LanguageSwitch />
             {me.role === 'admin' && (
               <NavLink className="button secondary" to="/admin">
-                ⚙️ {t('Справочники')}
+                <Settings aria-hidden size={20} /> {t('Справочники')}
               </NavLink>
             )}
             <TelegramHelp login={me.login} />
@@ -295,28 +301,28 @@ function Workspace({ session }: { session: Session }) {
       </header>
       <nav>
         <NavLink to="/orders">
-          <span className="ico" aria-hidden>📋</span>
+          <ClipboardList className="ico" aria-hidden />
           {me.role === 'worker' ? t('Мои наряды') : t('Смена')}
         </NavLink>
         {master && (
           <NavLink to="/new">
-            <span className="ico" aria-hidden>➕</span>
+            <Plus className="ico" aria-hidden />
             {t('Новый наряд')}
           </NavLink>
         )}
         <NavLink to="/equipment">
-          <span className="ico" aria-hidden>🏭</span>
+          <Factory className="ico" aria-hidden />
           {t('Оборудование')}
         </NavLink>
         {reports && (
           <NavLink to="/reports">
-            <span className="ico" aria-hidden>📊</span>
-            {t('Отчёты · ИИ')}
+            <ChartColumn className="ico" aria-hidden />
+            {t('Отчёты')}
           </NavLink>
         )}
         {me.role === 'admin' && (
           <NavLink to="/admin" className="nav-admin">
-            <span className="ico" aria-hidden>⚙️</span>
+            <Settings className="ico" aria-hidden />
             {t('Справочники')}
           </NavLink>
         )}
@@ -328,7 +334,7 @@ function Workspace({ session }: { session: Session }) {
               setInstall(null)
             }}
           >
-            <span className="ico" aria-hidden>⬇️</span>
+            <Download className="ico" aria-hidden />
             {t('Установить')}
           </button>
         )}
@@ -454,7 +460,7 @@ function Workspace({ session }: { session: Session }) {
           </Routes>
         </Suspense>
       </main>
-      <footer>{t('НарядAI · Решение принимает человек')}</footer>
+      <footer>{t('Решение всегда принимает человек')}</footer>
     </>
   )
 }
@@ -493,20 +499,21 @@ export default function App() {
   )
 }
 
-function NotificationsLink({ me }: { me: Employee }) {
+// В нижнем меню на телефоне места нет — там колокольчик показывается в шапке (header).
+function NotificationsLink({ me, header }: { me: Employee; header?: boolean }) {
   const unread = useUnreadCount(me).data ?? 0
   return (
     <NavLink
       to="/notifications"
-      className="nav-bell"
+      className={header ? 'header-bell' : 'nav-bell'}
       aria-label={
         unread
           ? `${t('Уведомления')}: ${t('непрочитанных')} ${unread}`
           : t('Уведомления')
       }
     >
-      <span className="ico bell" aria-hidden>
-        🔔
+      <span className="bell" aria-hidden>
+        <Bell className="ico" />
         {unread > 0 && (
           <b className="count">{unread > 99 ? '99+' : unread}</b>
         )}
@@ -520,7 +527,7 @@ function TelegramHelp({ login }: { login: string }) {
   return (
     <div className="telegram-help">
       <a className="button" href="https://t.me/naryad_ai_kz_bot" target="_blank" rel="noreferrer">
-        ✈️ {t('Открыть бота')}
+        <Send aria-hidden size={20} /> {t('Открыть бота в Telegram')}
       </a>
       <p>
         {t('Отправьте боту команду:')} <code>/start {login} ПИН</code>

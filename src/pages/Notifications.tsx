@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import {
+  AlarmClock,
+  Bell,
+  BellOff,
+  Check,
+  CircleCheck,
+  Info,
+  Mail,
+  RotateCcw,
+  Siren,
+  type LucideIcon,
+} from 'lucide-react'
 import type { Employee, Notification } from '../../shared/types'
 import { type AppData, dateLabel } from '../lib/data'
 import { cached } from '../lib/offline'
@@ -8,14 +20,14 @@ import { message, supabase } from '../lib/supabase'
 import { markRead } from '../lib/notifications'
 import { t } from '../lib/i18n'
 
-const KIND: Record<Notification['kind'], [string, string]> = {
-  new_order: ['📩', 'Новый наряд'],
-  reminder: ['⏰', 'Напоминание'],
-  overdue: ['⏱', 'Просрочка'],
-  escalation: ['🚨', 'Эскалация'],
-  rework: ['🔁', 'Доработка'],
-  review: ['✅', 'Проверка'],
-  info: ['ℹ️', 'Сообщение'],
+const KIND: Record<Notification['kind'], [LucideIcon, string]> = {
+  new_order: [Mail, 'Новый наряд'],
+  reminder: [AlarmClock, 'Напоминание'],
+  overdue: [AlarmClock, 'Просрочка'],
+  escalation: [Siren, 'Эскалация'],
+  rework: [RotateCcw, 'Доработка'],
+  review: [CircleCheck, 'Проверка'],
+  info: [Info, 'Сообщение'],
 }
 
 export function NotificationsPage({
@@ -64,7 +76,10 @@ export function NotificationsPage({
   const unread = list.data.filter((n) => !n.read_at).length
   return (
     <>
-      <h1>🔔 {t('Уведомления')}</h1>
+      <h1>
+        <Bell className="inline-ico" aria-hidden size={28} />{' '}
+        {t('Уведомления')}
+      </h1>
       {unread > 0 && (
         <p className="unread-total">
           {t('непрочитанных')}: <b>{unread}</b>
@@ -76,7 +91,7 @@ export function NotificationsPage({
           disabled={busy}
           onClick={() => void run(() => markRead(me))}
         >
-          ✔ {t('Отметить все прочитанными')}
+          <Check aria-hidden size={22} /> {t('Отметить все прочитанными')}
         </button>
       )}
       {error && (
@@ -87,13 +102,14 @@ export function NotificationsPage({
       {list.data.length ? (
         <ul className="notifications">
           {list.data.map((n) => {
-            const [icon, label] = KIND[n.kind] || KIND.info
+            const [Icon, label] = KIND[n.kind] || KIND.info
             const order = data.orders.find((o) => o.id === n.order_id)
             return (
               <li key={n.id} className={n.read_at ? 'read' : 'unread'}>
                 <div className="row">
                   <b>
-                    <span aria-hidden>{icon}</span> {t(label)}
+                    <Icon className="inline-ico" aria-hidden size={20} />{' '}
+                    {t(label)}
                     {!n.read_at && (
                       <span className="badge new">{t('Новое')}</span>
                     )}
@@ -121,7 +137,7 @@ export function NotificationsPage({
                         disabled={busy}
                         onClick={() => void run(() => markRead(me, n.id))}
                       >
-                        ✔ {t('Прочитано')}
+                        <Check aria-hidden size={20} /> {t('Прочитано')}
                       </button>
                     )}
                   </div>
@@ -132,9 +148,7 @@ export function NotificationsPage({
         </ul>
       ) : (
         <div className="empty">
-          <span className="big-ico" aria-hidden>
-            🔕
-          </span>
+          <BellOff className="big-ico" aria-hidden size={48} />
           <p>{t('Уведомлений пока нет.')}</p>
         </div>
       )}
