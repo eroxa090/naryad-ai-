@@ -1,6 +1,7 @@
 import { t } from '../lib/i18n'
 import i18n from '../lib/i18n'
 import { useEffect, useRef, useState } from 'react'
+import { Mic, Square } from 'lucide-react'
 import { api } from '../lib/api'
 import { message } from '../lib/supabase'
 
@@ -148,11 +149,17 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
         disabled={state === 'loading'}
         onClick={() => (state === 'recording' ? stop() : void start())}
       >
-        {state === 'recording'
-          ? t('■ Закончить запись')
-          : state === 'loading'
-            ? t('Распознаём…')
-            : t('🎙 Нажмите и продиктуйте')}
+        {state === 'recording' ? (
+          <>
+            <Square aria-hidden size={22} /> {t('Закончить запись')}
+          </>
+        ) : state === 'loading' ? (
+          t('Распознаём…')
+        ) : (
+          <>
+            <Mic aria-hidden size={22} /> {t('Нажмите и продиктуйте')}
+          </>
+        )}
       </button>
       {state === 'recording' && <p className="muted">{t('Говорите: оборудование, что случилось, срочность.')}</p>}
       {heard && (
