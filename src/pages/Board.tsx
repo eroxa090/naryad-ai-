@@ -138,8 +138,8 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
             {now.toLocaleDateString(i18n.language === 'kk' ? 'kk-KZ' : 'ru-RU', {
               day: 'numeric',
               month: 'long',
-            })}{' '}
-            {t('· смена').trim()}{' '}
+            })}
+            , {t('смена')}{' '}
             {start.getHours() === 8 ? '08:00–20:00' : '20:00–08:00'}
           </p>
           <h1>{isWorker ? t('Мои наряды') : t('Панель смены')}</h1>
@@ -181,8 +181,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
           </div>
           <details className="panel">
             <summary>
-              {t('Люди на смене ·')}
-              {onShift.length}
+              {t('Люди на смене')}: {onShift.length}
             </summary>
             <div className="people">
               {onShift.map((s) => (

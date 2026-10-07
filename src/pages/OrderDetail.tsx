@@ -1,5 +1,6 @@
 import { t } from '../lib/i18n'
 import { useState } from 'react'
+import { Camera, Check, Clock, Hand, Pause, Play, Send, TriangleAlert } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import type {
@@ -182,37 +183,34 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
       <div className="page-title">
         <div>
           <p className="eyebrow">
-            {t('НАРЯД №')}
+            {t('Наряд №')}
             {order.number}
           </p>
           <h1>{order.description}</h1>
         </div>
-        <span
-          className={`badge ${order.priority === 'emergency' ? 'emergency' : order.status}`}
-        >
-          {order.priority === 'emergency'
-            ? t('Аварийный · ')
-            : order.type === 'emergency'
-              ? t('Внеплановый · ')
-              : t('Плановый · ')}
-          {t(ORDER_STATUS_LABEL[order.status])}
-        </span>
+        <div className="badges">
+          {order.priority === 'emergency' ? (
+            <span className="badge emergency">
+              <TriangleAlert aria-hidden size={16} /> {t('Аварийный')}
+            </span>
+          ) : (
+            <span className="badge type">{order.type === 'emergency' ? t('Внеплановый') : t('Плановый')}</span>
+          )}
+          <span className={`badge ${order.status}`}>{t(ORDER_STATUS_LABEL[order.status])}</span>
+        </div>
       </div>
       <div className="grid2">
         <section className="panel">
           <h2>{t('Задание')}</h2>
-          <p>
-            {data.sites.find((s) => s.id === order.site_id)?.name} /{' '}
-            {data.equipment.find((e) => e.id === order.equipment_id)?.name}
-          </p>
+          <p className="plate">{data.equipment.find((e) => e.id === order.equipment_id)?.name}</p>
+          <p>{data.sites.find((s) => s.id === order.site_id)?.name}</p>
           <p>
             {t('Исполнитель:')}{' '}
             {data.employees.find((e) => e.id === order.assignee_id)
               ?.full_name || t('Не назначен')}
           </p>
           <p className={order.is_overdue ? 'error' : ''}>
-            {t('Срок:')}
-            {dateLabel(order.deadline)}
+            {t('Срок:')} {dateLabel(order.deadline)}
           </p>
           <div className="actions">
             {!worker &&
@@ -457,7 +455,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             })
           }}
         >
-          <h2>{t('Исполнено · отчёт о работах')}</h2>
+          <h2>{t('Отчёт о выполненной работе')}</h2>
           <Voice onText={(text) => setWork(text)} />
           <label>
             {t('Выполненные работы')}
@@ -543,7 +541,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             {t('＋ Материал')}
           </button>
           <label>
-            📷 {t('Фото после работ')}
+            <Camera aria-hidden size={20} /> {t('Фото после работ')}
             {order.type === 'emergency' ? t('(обязательно)') : ''}
             <input
               type="file"
@@ -558,7 +556,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             <textarea name="comment" />
           </label>
           <button className="big" disabled={busy}>
-            {busy ? t('Отправляем…') : `📤 ${t('Исполнено — отправить отчёт')}`}
+            {busy ? t('Отправляем…') : t('Отправить отчёт')}
           </button>
         </form>
       )}
@@ -647,7 +645,11 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
           <div aria-hidden style={{ height: 190 }} />
           <div className="action-bar worker-bar" role="toolbar" aria-label={t('Действия по наряду')}>
             {(() => {
-              const icon: Record<string, string> = { accept: '✅', start: '▶️', resume: '▶️', queue: '⏳', reject: '✋', pause: '⏸' }
+              const I = { accept: Check, start: Play, resume: Play, queue: Clock, reject: Hand, pause: Pause } as Record<string, typeof Check>
+              const icon = (a: string) => {
+                const C = I[a]
+                return C ? <C aria-hidden size={24} /> : null
+              }
               const primary = actions.find(([a]) => ['accept', 'start', 'resume'].includes(a))
               const rest = actions.filter((x) => x !== primary)
               if (rejecting) return (
@@ -693,12 +695,12 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                       disabled={busy}
                       onClick={() => document.getElementById('submit-form')?.scrollIntoView({ block: 'start' })}
                     >
-                      📤 {t('Сдать работу')}
+                      <Send aria-hidden size={24} /> {t('Сдать работу')}
                     </button>
                   ) : (
                     primary && (
                       <button className="big" disabled={busy} onClick={() => action(primary[0])}>
-                        {icon[primary[0]]} {primary[1]}
+                        {icon(primary[0])} {primary[1]}
                       </button>
                     )
                   )}
@@ -706,7 +708,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                     <div className="more">
                       {rest.map(([a, label]) => (
                         <button key={a} className={a === 'reject' ? 'danger' : 'secondary'} disabled={busy} onClick={() => action(a)}>
-                          {icon[a]} {a === 'pause' ? t('Пауза') : label}
+                          {icon(a)} {a === 'pause' ? t('Пауза') : label}
                         </button>
                       ))}
                     </div>
