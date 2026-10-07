@@ -215,46 +215,12 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             {dateLabel(order.deadline)}
           </p>
           <div className="actions">
-            {actions.map(([a, label]) => (
-              <button disabled={busy} key={a} onClick={() => action(a)}>
-                {label}
-              </button>
-            ))}
-            {rejecting && (
-              <div className="panel">
-                <p>{t('Причина отказа:')}</p>
-                <div className="actions">
-                  {REJECT_REASONS.map((r) => (
-                    <button
-                      key={r}
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => reject(r)}
-                    >
-                      {t(r)}
-                    </button>
-                  ))}
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      const other = window
-                        .prompt(t('Опишите причину отказа'))
-                        ?.trim()
-                      if (other) reject(`Другое: ${other}`)
-                    }}
-                  >
-                    {t('Другое')}
-                  </button>
-                  <button
-                    className="danger"
-                    onClick={() => setRejecting(false)}
-                  >
-                    {t('Отмена')}
-                  </button>
-                </div>
-              </div>
-            )}
+            {!worker &&
+              actions.map(([a, label]) => (
+                <button disabled={busy} key={a} onClick={() => action(a)}>
+                  {label}
+                </button>
+              ))}
             {master && order.status === 'submitted' && (
               <>
                 <button disabled={busy} onClick={() => action('close')}>
@@ -420,6 +386,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
       )}
       {worker && order.status === 'in_progress' && (
         <form
+          id="submit-form"
           className="panel form"
           onSubmit={(e) => {
             e.preventDefault()
@@ -576,11 +543,12 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             {t('＋ Материал')}
           </button>
           <label>
-            {t('Фото после работ')}
+            📷 {t('Фото после работ')}
             {order.type === 'emergency' ? t('(обязательно)') : ''}
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               multiple
               onChange={(e) => setFiles(Array.from(e.target.files || []))}
             />
@@ -589,8 +557,8 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             {t('Комментарий')}
             <textarea name="comment" />
           </label>
-          <button disabled={busy}>
-            {busy ? t('Отправляем…') : t('Исполнено — отправить отчёт')}
+          <button className="big" disabled={busy}>
+            {busy ? t('Отправляем…') : `📤 ${t('Исполнено — отправить отчёт')}`}
           </button>
         </form>
       )}
@@ -674,6 +642,81 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
           ))}
         </ol>
       </section>
+      {worker && (actions.length > 0 || order.status === 'in_progress') && (
+        <>
+          <div aria-hidden style={{ height: 190 }} />
+          <div className="action-bar worker-bar" role="toolbar" aria-label={t('Действия по наряду')}>
+            {(() => {
+              const icon: Record<string, string> = { accept: '✅', start: '▶️', resume: '▶️', queue: '⏳', reject: '✋', pause: '⏸' }
+              const primary = actions.find(([a]) => ['accept', 'start', 'resume'].includes(a))
+              const rest = actions.filter((x) => x !== primary)
+              if (rejecting) return (
+              <div className="panel">
+                <p>{t('Причина отказа:')}</p>
+                <div className="actions">
+                  {REJECT_REASONS.map((r) => (
+                    <button
+                      key={r}
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => reject(r)}
+                    >
+                      {t(r)}
+                    </button>
+                  ))}
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      const other = window
+                        .prompt(t('Опишите причину отказа'))
+                        ?.trim()
+                      if (other) reject(`Другое: ${other}`)
+                    }}
+                  >
+                    {t('Другое')}
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => setRejecting(false)}
+                  >
+                    {t('Отмена')}
+                  </button>
+                </div>
+              </div>
+              )
+              return (
+                <>
+                  {order.status === 'in_progress' ? (
+                    <button
+                      className="big"
+                      disabled={busy}
+                      onClick={() => document.getElementById('submit-form')?.scrollIntoView({ block: 'start' })}
+                    >
+                      📤 {t('Сдать работу')}
+                    </button>
+                  ) : (
+                    primary && (
+                      <button className="big" disabled={busy} onClick={() => action(primary[0])}>
+                        {icon[primary[0]]} {primary[1]}
+                      </button>
+                    )
+                  )}
+                  {rest.length > 0 && (
+                    <div className="more">
+                      {rest.map(([a, label]) => (
+                        <button key={a} className={a === 'reject' ? 'danger' : 'secondary'} disabled={busy} onClick={() => action(a)}>
+                          {icon[a]} {a === 'pause' ? t('Пауза') : label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </>
+      )}
     </>
   )
 }
