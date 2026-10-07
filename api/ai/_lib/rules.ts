@@ -32,8 +32,13 @@ export function specialtyFor(faultCode: string | null | undefined, equipmentType
   return 'слесарь'
 }
 
+// Whisper иногда пишет коды латиницей («N2», «KMD-1750») — приводим к кириллице.
+const LAT: Record<string, string> = {
+  a: 'а', b: 'б', c: 'с', d: 'д', e: 'е', g: 'г', i: 'и', k: 'к', l: 'л', m: 'м', n: 'н',
+  o: 'о', p: 'п', r: 'р', s: 'с', t: 'т', u: 'у', v: 'в', x: 'х', z: 'з', h: 'н', y: 'у',
+}
 const normalize = (s: string) =>
-  ` ${s.toLowerCase().replace(/ё/g, 'е').replace(/[«»"“”.,!?;:()]/g, ' ').replace(/\s+/g, ' ')} `
+  ` ${s.toLowerCase().replace(/ё/g, 'е').replace(/[a-z]/g, (c) => LAT[c] ?? c).replace(/[«»"“”.,!?;:()]/g, ' ').replace(/\s+/g, ' ')} `
 
 const NUMBER_WORDS: Record<string, string> = {
   один: '1', первый: '1', первая: '1', два: '2', второй: '2', вторая: '2', три: '3', третий: '3', третья: '3',
