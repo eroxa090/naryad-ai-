@@ -853,3 +853,12 @@ nav .ico.bell .count {
 .notifications .actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .notifications .actions > * { flex: 1 1 200px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
 .badge.new { margin-left: 8px; background: var(--info); color: #fff; }
+/* администрирование справочников */
+.admin-toolbar { padding: 0; margin: 0 0 14px; }
+.admin-toolbar button { flex: 0 0 auto; }
+.admin-form .check { display: flex; align-items: center; gap: 12px; min-height: 60px; }
+.admin-form .check input { width: 32px; height: 32px; min-height: 0; }
+.admin-actions { display: flex; flex-wrap: wrap; }
+.admin-actions button { flex: 1 1 200px; }
+.report-table tr.editing td { background: #e6efff; }
+.report-table td button { min-height: 64px; white-space: nowrap; padding: 8px 14px; }
