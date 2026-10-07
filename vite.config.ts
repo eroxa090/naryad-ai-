@@ -5,6 +5,7 @@ import { defineConfig, loadEnv } from 'vite'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
+    server: { proxy: { '/api': { target: 'https://naryadai-kz.vercel.app', changeOrigin: true } } },
     define: { __AI_MOCK__: JSON.stringify(env.AI_MOCK === 'true') },
     plugins: [
       react(),
