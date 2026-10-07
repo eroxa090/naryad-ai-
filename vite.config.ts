@@ -6,7 +6,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     server: { proxy: { '/api': { target: 'https://naryadai-kz.vercel.app', changeOrigin: true } } },
-    define: { __AI_MOCK__: JSON.stringify(env.AI_MOCK === 'true') },
+    // Клиентские заглушки ИИ — только для офлайн-разработки без бэкенда. Обычно фронт ходит в /api/ai,
+    // а серверный AI_MOCK решает, вызывать ли LLM (детерминированные проверки работают всегда).
+    define: { __AI_MOCK__: JSON.stringify(env.VITE_AI_CLIENT_MOCK === 'true') },
     plugins: [
       react(),
       tailwindcss(),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { qrFromScan } from '../lib/qr'
 import { ORDER_STATUS_LABEL } from '../../shared/types'
 import { type AppData, dateLabel } from '../lib/data'
 import { message } from '../lib/supabase'
@@ -11,7 +12,11 @@ export function EquipmentPage({
   data: AppData
   canCreate: boolean
 }) {
-  const [selected, setSelected] = useState(0),
+  const [params] = useSearchParams()
+  const [selected, setSelected] = useState(() => {
+    const code = params.get('qr')
+    return data.equipment.find((e) => e.qr_code === code)?.id ?? 0
+  }),
     [search, setSearch] = useState(''),
     [scanning, setScanning] = useState(false),
     [error, setError] = useState('')
@@ -25,7 +30,8 @@ export function EquipmentPage({
       .start(
         { facingMode: 'environment' },
         { fps: 8, qrbox: 220 },
-        (text) => {
+        (raw) => {
+          const text = qrFromScan(raw)
           const e = data.equipment.find(
             (e) =>
               e.qr_code === text ||

@@ -6,6 +6,7 @@ import { admin } from '../_lib/supabase.js'
 import { notify } from '../_lib/notify.js'
 import { getOrderFull, hhmm, lastComment, minutesText } from '../_lib/orders.js'
 import { ORDER_STATUS_LABEL } from '../../shared/types.js'
+import { runAnalytics } from '../ai/_lib/analytics.js'
 
 const REMIND_BEFORE_MIN = 30
 const REPEAT_OVERDUE_MIN = 30
@@ -91,6 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await admin.from('order_events').insert({ order_id: o.id, action: 'escalate', comment: text })
     await admin.from('orders').update({ escalated_at: new Date(now).toISOString() }).eq('id', o.id)
     result.escalations++
+  }
+
+  // 4. ИИ-аналитика раз в сутки (карта здоровья, закономерности)
+  const { data: lastInsight } = await admin.from('ai_insights').select('created_at').order('created_at', { ascending: false }).limit(1)
+  if (!lastInsight?.length || now - Date.parse(lastInsight[0].created_at) > 24 * 3_600_000) {
+    await runAnalytics().then((n) => Object.assign(result, { insights: n })).catch((e) => console.error('analytics failed', e))
   }
 
   res.status(200).json(result)
