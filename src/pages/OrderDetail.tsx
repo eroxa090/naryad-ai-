@@ -226,12 +226,12 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 <div className="actions">
                   {REJECT_REASONS.map((r) => (
                     <button
-                      key={t(r)}
+                      key={r}
                       className="secondary"
                       disabled={busy}
                       onClick={() => reject(r)}
                     >
-                      {r}
+                      {t(r)}
                     </button>
                   ))}
                   <button
