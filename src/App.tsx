@@ -242,7 +242,7 @@ function Workspace({ session }: { session: Session }) {
         <NavLink className="brand" to="/">
           Наряд<span>AI</span>
         </NavLink>
-        <span className="user">
+        <details className="telegram-connect"><summary>Подключить Telegram</summary><div><a className="button" href="https://t.me/naryad_ai_kz_bot" target="_blank" rel="noreferrer">Открыть бота</a><p>Отправьте боту команду:</p><code>/start &lt;логин&gt; &lt;ПИН&gt;</code><p>Ваш логин: <b>{me.login}</b>. Вместо &lt;ПИН&gt; введите свой шестизначный ПИН.</p></div></details><span className="user">
           {me.full_name}
           <small>
             {master

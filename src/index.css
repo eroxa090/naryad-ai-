@@ -562,3 +562,4 @@ footer {
   .qr-print-card h2{font-size:11pt}.qr-print-card p{font-size:9pt}
   @page{size:A4;margin:10mm}
 }
+.telegram-connect{position:relative}.telegram-connect summary{padding:10px}.telegram-connect>div{position:absolute;z-index:20;top:100%;left:0;background:white;border:1px solid #c7d4cf;border-radius:12px;padding:20px;width:min(330px,85vw);box-shadow:0 12px 30px #18322f20}@media(max-width:700px){header{flex-wrap:wrap}.telegram-connect{order:5;width:100%}.telegram-connect>div{position:static;width:100%}}
