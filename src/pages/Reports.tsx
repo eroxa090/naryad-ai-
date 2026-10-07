@@ -11,7 +11,8 @@ import {
 } from 'recharts'
 import type { AiInsight, ShiftReportRes } from '../../shared/types'
 import { ORDER_STATUS_LABEL } from '../../shared/types'
-import { type AppData, dateLabel } from '../lib/data'
+import { type AppData, dateLabel, loadOrders } from '../lib/data'
+import { cached } from '../lib/offline'
 import { api } from '../lib/api'
 import { rows, message } from '../lib/supabase'
 import { exportExcel, exportPdf } from '../lib/export'
@@ -22,6 +23,12 @@ const localInput = (date: Date) =>
     .toISOString()
     .slice(0, 16)
 export function Reports({ data }: { data: AppData }) {
+  const history = useQuery({ queryKey: ['orders-history'], networkMode: 'always', queryFn: () => cached('orders-history', () => loadOrders(true)) })
+  if (history.isPending) return <p aria-busy="true">Загружаем историю нарядов…</p>
+  if (history.error) return <p role="alert">{message(history.error)} <button onClick={() => void history.refetch()}>Повторить</button></p>
+  return <ReportContent data={{...data, orders: history.data}} />
+}
+function ReportContent({ data }: { data: AppData }) {
   const [from, setFrom] = useState(() => {
       const now = new Date(),
         start = new Date(now)

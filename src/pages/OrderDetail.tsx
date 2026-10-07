@@ -5,6 +5,7 @@ import type {
   AiReview,
   Employee,
   OrderAction,
+  Order,
   OrderEvent,
   OrderMaterial,
   OrderPhoto,
@@ -27,7 +28,16 @@ import { Voice } from '../components/Voice'
 const REJECT_REASONS = ['Нет материалов', 'Нет допуска', 'Занят аварийным', 'Не на смене', 'Нет инструмента']
 export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
   const { id } = useParams()
-  const order = data.orders.find((o) => o.id === Number(id))
+  const current = data.orders.find((o) => o.id === Number(id))
+  const archived = useQuery({
+    queryKey: ['archived-order', id], enabled: !current, networkMode: 'always',
+    queryFn: () => cached(`archived-order:${id}`, async () => {
+      const {data, error} = await supabase.from('orders').select('*').eq('id', id).single()
+      if (error) throw error
+      return data as Order
+    }),
+  })
+  const order = current || archived.data
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [work, setWork] = useState(''),
