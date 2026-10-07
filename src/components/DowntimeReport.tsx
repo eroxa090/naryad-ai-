@@ -87,8 +87,10 @@ export function DowntimeReport({
                   <td>
                     <b>{r.name}</b>
                   </td>
-                  <td className="num">{r.unplannedHours.toFixed(1)}</td>
-                  <td>
+                  <td className="num" data-label={t('Внеплановые, ч')}>
+                    {r.unplannedHours.toFixed(1)}
+                  </td>
+                  <td data-label={t('По причинам')}>
                     {r.causes.size ? (
                       <ul className="causes">
                         {causesOf(r).map(([code, h]) => (
@@ -101,18 +103,20 @@ export function DowntimeReport({
                       '—'
                     )}
                   </td>
-                  <td>
-                    <div
-                      className="split"
-                      role="img"
-                      aria-label={`${t('Внеплановые')} ${share(r)}%`}
-                    >
-                      <span style={{ width: `${share(r)}%` }} />
+                  <td data-label={t('Внеплановые / плановые')}>
+                    <div className="share">
+                      <div
+                        className="split"
+                        role="img"
+                        aria-label={`${t('Внеплановые')} ${share(r)}%`}
+                      >
+                        <span style={{ width: `${share(r)}%` }} />
+                      </div>
+                      <small>
+                        {t('Внеплановые')} {r.unplanned} ({share(r)}%) ·{' '}
+                        {t('Плановые')} {r.planned} ({100 - share(r)}%)
+                      </small>
                     </div>
-                    <small>
-                      {t('Внеплановые')} {r.unplanned} ({share(r)}%) ·{' '}
-                      {t('Плановые')} {r.planned} ({100 - share(r)}%)
-                    </small>
                   </td>
                 </tr>
               ))}
