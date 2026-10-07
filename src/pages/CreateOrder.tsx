@@ -198,14 +198,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
               .filter((e) => e.role === 'worker')
               .map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.full_name} ·{' '}
-                  {
-                    liveLabels[
-                      data.statuses.find((s) => s.employee_id === e.id)
-                        ?.status || 'off_shift'
-                    ]
-                  }{' '}
-                  · {e.specialty}
+                  {workerLabel(data, e)}
                 </option>
               ))}
           </select>
@@ -299,4 +292,19 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
       </form>
     </>
   )
+}
+// «Иванов · В работе · выполняет наряд №N · в очереди 2 · Слесарь»
+function workerLabel(data: AppData, e: Employee) {
+  const live = data.statuses.find((s) => s.employee_id === e.id)
+  const current = data.orders.find((o) => o.id === live?.current_order_id)
+  return [
+    e.full_name,
+    t(liveLabels[live?.status || 'off_shift']),
+    live?.current_order_id &&
+      `${t('выполняет наряд №')}${current?.number ?? live.current_order_id}`,
+    live?.queue_count ? `${t('в очереди')} ${live.queue_count}` : '',
+    e.specialty,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
