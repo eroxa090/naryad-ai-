@@ -19,6 +19,7 @@ import { exportExcel, exportPdf } from '../lib/export'
 import { MaterialsReport } from '../components/MaterialsReport'
 import { DowntimeReport } from '../components/DowntimeReport'
 import { Voice } from '../components/Voice'
+import { t } from '../lib/i18n'
 const hours = (a: string, b: string) =>
   Math.max(0, (new Date(b).getTime() - new Date(a).getTime()) / 3600000)
 const localInput = (date: Date) =>
@@ -27,8 +28,8 @@ const localInput = (date: Date) =>
     .slice(0, 16)
 export function Reports({ data }: { data: AppData }) {
   const history = useQuery({ queryKey: ['orders-history'], networkMode: 'always', queryFn: () => cached('orders-history', () => loadOrders(true)) })
-  if (history.isPending) return <p aria-busy="true">Загружаем историю нарядов…</p>
-  if (history.error) return <p role="alert">{message(history.error)} <button onClick={() => void history.refetch()}>Повторить</button></p>
+  if (history.isPending) return <p aria-busy="true">{t('Загружаем историю нарядов…')}</p>
+  if (history.error) return <p role="alert">{message(history.error)} <button onClick={() => void history.refetch()}>{t('Повторить')}</button></p>
   return <ReportContent data={{...data, orders: history.data}} />
 }
 function ReportContent({ data }: { data: AppData }) {
@@ -72,8 +73,8 @@ function ReportContent({ data }: { data: AppData }) {
       .map((o) => hours(o.started_at!, o.submitted_at!))
   const average = (values: number[]) =>
     values.length
-      ? `${(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)} ч`
-      : 'Нет данных'
+      ? `${(values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)} ${t('ч')}`
+      : t('Нет данных')
   const ratings = data.ratings.map((r) => ({
     ...r,
     name:
@@ -85,11 +86,11 @@ function ReportContent({ data }: { data: AppData }) {
     new Set(
       data.employees
         .filter((e) => e.role === 'worker')
-        .map((e) => e.brigade || 'Без бригады'),
+        .map((e) => e.brigade || t('Без бригады')),
     ),
   ).map((name) => {
     const ids = data.employees
-      .filter((e) => (e.brigade || 'Без бригады') === name)
+      .filter((e) => (e.brigade || t('Без бригады')) === name)
       .map((e) => e.id)
     const group = ratings.filter((r) => ids.includes(r.employee_id))
     return {
@@ -146,11 +147,11 @@ function ReportContent({ data }: { data: AppData }) {
   }))
   return (
     <>
-      <p className="eyebrow">ПРОИЗВОДСТВО В ЦИФРАХ</p>
-      <h1>Отчёты и аналитика</h1>
+      <p className="eyebrow">{t('ПРОИЗВОДСТВО В ЦИФРАХ')}</p>
+      <h1>{t('Отчёты и аналитика')}</h1>
       <section className="panel filters">
         <label>
-          С
+          {t('С')}
           <input
             type="datetime-local"
             value={from}
@@ -162,7 +163,7 @@ function ReportContent({ data }: { data: AppData }) {
           />
         </label>
         <label>
-          По
+          {t('По')}
           <input
             type="datetime-local"
             value={to}
@@ -174,16 +175,16 @@ function ReportContent({ data }: { data: AppData }) {
           />
         </label>
         <label>
-          Участок
+          {t('Участок')}
           <select
-            aria-label="Участок"
+            aria-label={t('Участок')}
             value={site}
             onChange={(e) => {
               setSite(e.target.value)
               setReport(null)
             }}
           >
-            <option value="">Все участки</option>
+            <option value="">{t('Все участки')}</option>
             {data.sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -205,7 +206,7 @@ function ReportContent({ data }: { data: AppData }) {
             )
           }
         >
-          Отчёт за смену
+          {t('Отчёт за смену')}
         </button>
       </section>
       {error && (
@@ -214,24 +215,25 @@ function ReportContent({ data }: { data: AppData }) {
         </p>
       )}
       <p className="muted">
-        Показатели по нарядам, созданным в выбранный период. Время реакции — до
-        принятия, выполнения — от начала до отправки отчёта.
+        {t(
+          'Показатели по нарядам, созданным в выбранный период. Время реакции — до принятия, выполнения — от начала до отправки отчёта.',
+        )}
       </p>
       <div className="stats">
         {[
           [
-            'В работе',
+            t('В работе'),
             filtered.filter((o) => o.status === 'in_progress').length,
           ],
           [
-            'Просрочено',
+            t('Просрочено'),
             filtered.filter(
               (o) =>
                 o.is_overdue && !['closed', 'cancelled'].includes(o.status),
             ).length,
           ],
-          ['Средняя реакция', average(reactions)],
-          ['Среднее выполнение', average(durations)],
+          [t('Средняя реакция'), average(reactions)],
+          [t('Среднее выполнение'), average(durations)],
         ].map(([label, value]) => (
           <div className="panel" key={label}>
             <strong>{value}</strong>
@@ -240,7 +242,7 @@ function ReportContent({ data }: { data: AppData }) {
         ))}
       </div>
       <section className="panel">
-        <h2>Оценка простоя</h2>
+        <h2>{t('Оценка простоя')}</h2>
         <strong>
           {filtered
             .filter((o) => o.type === 'emergency' && o.started_at)
@@ -249,22 +251,22 @@ function ReportContent({ data }: { data: AppData }) {
               0,
             )
             .toFixed(1)}{' '}
-          ч
+          {t('ч')}
         </strong>
         <p>
-          Сумма времени аварийных работ от начала до исполнения (для открытых —
-          до текущего момента). Это оценка по нарядам: параллельные работы могут
-          пересекаться.
+          {t(
+            'Сумма времени аварийных работ от начала до исполнения (для открытых — до текущего момента). Это оценка по нарядам: параллельные работы могут пересекаться.',
+          )}
         </p>
       </section>
       {report && (
         <section className="panel">
-          <h2>Сводка смены</h2>
+          <h2>{t('Сводка смены')}</h2>
           <p>{report.summary}</p>
           <p>
-            Выдано: {report.stats.issued} · Закрыто: {report.stats.closed} ·
-            Просрочено: {report.stats.overdue} · Отклонено:{' '}
-            {report.stats.rejected}
+            {t('Выдано:')} {report.stats.issued} · {t('Закрыто:')}{' '}
+            {report.stats.closed} · {t('Просрочено:')} {report.stats.overdue} ·{' '}
+            {t('Отклонено:')} {report.stats.rejected}
           </p>
         </section>
       )}
@@ -274,7 +276,7 @@ function ReportContent({ data }: { data: AppData }) {
           className="secondary"
           onClick={() => void run(() => exportExcel(exportRows))}
         >
-          Экспорт Excel
+          {t('Экспорт Excel')}
         </button>
         <button
           disabled={busy}
@@ -283,7 +285,7 @@ function ReportContent({ data }: { data: AppData }) {
             void run(() =>
               exportPdf([
                 `НарядAI · ${from} — ${to}`,
-                report?.summary || 'Реестр нарядов',
+                report?.summary || t('Реестр нарядов'),
                 ...exportRows.map(
                   (r) =>
                     `№${r.Номер}: ${r.Задача}. ${r.Статус}. ${r.Оборудование}. Срок: ${r.Срок}`,
@@ -292,12 +294,12 @@ function ReportContent({ data }: { data: AppData }) {
             )
           }
         >
-          Экспорт PDF
+          {t('Экспорт PDF')}
         </button>
       </div>
       <div className="grid2">
         <section className="panel">
-          <h2>Рейтинг исполнителей · 30 дней</h2>
+          <h2>{t('Рейтинг исполнителей · 30 дней')}</h2>
           <div className="chart">
             <ResponsiveContainer>
               <BarChart
@@ -314,45 +316,46 @@ function ReportContent({ data }: { data: AppData }) {
                   tick={{ fontSize: 11 }}
                 />
                 <Tooltip />
-                <Bar dataKey="rating" name="Рейтинг" fill="#20846b" />
+                <Bar dataKey="rating" name={t('Рейтинг')} fill="#20846b" />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <p>
-            35% качество + 25% в срок + 20% без возвратов + 15% сложность − 5%
-            штраф.
+            {t(
+              '35% качество + 25% в срок + 20% без возвратов + 15% сложность − 5% штраф.',
+            )}
           </p>
         </section>
         <section className="panel">
-          <h2>Бригады · средний рейтинг</h2>
+          <h2>{t('Бригады · средний рейтинг')}</h2>
           <div className="chart">
             <ResponsiveContainer>
               <BarChart data={brigades}>
                 <XAxis dataKey="name" />
                 <YAxis domain={[0, 100]} />
                 <Tooltip />
-                <Bar dataKey="rating" name="Рейтинг" fill="#3e7bc3" />
+                <Bar dataKey="rating" name={t('Рейтинг')} fill="#3e7bc3" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
       </div>
       <section className="panel">
-        <h2>Топ-5 проблемного оборудования</h2>
+        <h2>{t('Топ-5 проблемного оборудования')}</h2>
         {top.length ? (
           top.map((e) => (
             <p key={e.id}>
-              <b>{e.name}</b> · аварийных нарядов: {e.count}
+              <b>{e.name}</b> · {t('аварийных нарядов:')} {e.count}
             </p>
           ))
         ) : (
-          <p>Нет аварийных нарядов за период.</p>
+          <p>{t('Нет аварийных нарядов за период.')}</p>
         )}
       </section>
       <DowntimeReport data={data} orders={filtered} />
       <MaterialsReport data={data} orders={filtered} />
       <section className="panel">
-        <h2>Выводы ИИ по истории нарядов</h2>
+        <h2>{t('Выводы ИИ по истории нарядов')}</h2>
         {insights.data?.some((i) => i.kind !== 'equipment_risk') ? (
           <div className="insights">
             {insights.data
@@ -361,12 +364,12 @@ function ReportContent({ data }: { data: AppData }) {
                 <article key={i.id} className="notice">
                   <h3>{i.title}</h3>
                   <p>{i.text}</p>
-                  {i.recommendation && <p><b>Рекомендация:</b> {i.recommendation}</p>}
+                  {i.recommendation && <p><b>{t('Рекомендация:')}</b> {i.recommendation}</p>}
                 </article>
               ))}
           </div>
         ) : (
-          <p>Аналитика ещё не рассчитана.</p>
+          <p>{t('Аналитика ещё не рассчитана.')}</p>
         )}
         <button
           disabled={busy}
@@ -378,14 +381,15 @@ function ReportContent({ data }: { data: AppData }) {
             })
           }
         >
-          Пересчитать аналитику
+          {t('Пересчитать аналитику')}
         </button>
       </section>
       <section className="panel">
-        <h2>Карта здоровья оборудования</h2>
+        <h2>{t('Карта здоровья оборудования')}</h2>
         <p>
-          Зелёный: риск &lt; 35%, жёлтый: 35–69%, красный: ≥70%. Серый: нет
-          оценки аналитики.
+          {t(
+            'Зелёный: риск < 35%, жёлтый: 35–69%, красный: ≥70%. Серый: нет оценки аналитики.',
+          )}
         </p>
         {insights.error && <p className="error">{message(insights.error)}</p>}
         {data.sites.map((s) => (
@@ -423,8 +427,8 @@ function ReportContent({ data }: { data: AppData }) {
                       {e.name}
                       <small>
                         {risk === null
-                          ? 'Нет оценки'
-                          : `Риск ${Math.round(risk * 100)}%`}
+                          ? t('Нет оценки')
+                          : `${t('Риск')} ${Math.round(risk * 100)}%`}
                       </small>
                     </button>
                   )
@@ -437,14 +441,14 @@ function ReportContent({ data }: { data: AppData }) {
             <h3>{selected.title}</h3>
             <p>{selected.text}</p>
             <p>{selected.recommendation}</p>
-            <small>Обновлено: {dateLabel(selected.created_at)}</small>
+            <small>{t('Обновлено:')} {dateLabel(selected.created_at)}</small>
           </div>
         )}
       </section>
       <section className="panel">
-        <h2>ИИ-ассистент</h2>
+        <h2>{t('ИИ-ассистент')}</h2>
         <Voice
-          hint="Спросите, например: кто свободен? что просрочено?"
+          hint={t('Спросите, например: кто свободен? что просрочено?')}
           onText={(text) => {
             setQuestion(text)
             return ask(text)
@@ -457,16 +461,16 @@ function ReportContent({ data }: { data: AppData }) {
           }}
         >
           <label>
-            Вопрос
+            {t('Вопрос')}
             <textarea
               required
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Кто свободен? Что просрочено?"
+              placeholder={t('Кто свободен? Что просрочено?')}
             />
           </label>
           <button disabled={asking || !question.trim()}>
-            {asking ? 'Думаю…' : 'Спросить'}
+            {asking ? t('Думаю…') : t('Спросить')}
           </button>
         </form>
         {askError && (

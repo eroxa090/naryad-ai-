@@ -452,7 +452,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 setMockReview(await api.checkOrder({ order_id: order.id }))
                 return t('Отчёт отправлен на проверку мастеру')
               } catch (e) {
-                return `Отчёт сохранён. ИИ недоступен: ${message(e)}. Повторите проверку кнопкой «Проверить ИИ».`
+                return `${t('Отчёт сохранён. ИИ недоступен:')} ${message(e)}. ${t('Повторите проверку кнопкой «Проверить ИИ».')}`
               }
             })
           }}
