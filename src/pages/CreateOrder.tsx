@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Employee, Priority, SuggestWorkerRes } from '../../shared/types'
 import { PRIORITY_LABEL } from '../../shared/types'
@@ -7,14 +7,264 @@ import { api } from '../lib/api'
 import { message, queryClient, supabase } from '../lib/supabase'
 import { uploadPhotos } from '../lib/photos'
 import { Voice } from '../components/Voice'
-export function CreateOrder({data,me}:{data:AppData;me:Employee}) {
-  const [params]=useSearchParams();const initial=data.equipment.find(e=>e.id===Number(params.get('equipment')))
-  const [site,setSite]=useState(initial?.site_id||data.sites[0]?.id||0),[equipment,setEquipment]=useState(initial?.id||0),[description,setDescription]=useState(''),[assignee,setAssignee]=useState(0),[priority,setPriority]=useState<Priority>('normal'),[fault,setFault]=useState(''),[files,setFiles]=useState<File[]>([]),[candidates,setCandidates]=useState<SuggestWorkerRes['candidates']>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[created,setCreated]=useState<number|null>(null)
-  const navigate=useNavigate()
-  async function suggest(id:number){setEquipment(id);setCandidates([]);if(!id)return;try{const result=await api.suggestWorker({equipment_id:id,fault_code:fault||null});setCandidates(result.candidates);if(result.candidates[0])setAssignee(result.candidates[0].employee_id)}catch(e){setError(message(e))}}
-  return <><h1>Новый наряд</h1><p>Продиктуйте задачу, проверьте оборудование и исполнителя, выдайте наряд.</p><form className="panel form" onSubmit={async e=>{e.preventDefault();if(busy||created)return;setBusy(true);setError('');let id:number|null=null;try{if(!equipment||!assignee||!description.trim())throw new Error('Укажите задачу, оборудование и исполнителя');if(files.length>5)throw new Error('Не больше 5 фотографий');const f=new FormData(e.currentTarget);const {data:order,error}=await supabase.from('orders').insert({description:description.trim(),site_id:site,equipment_id:equipment,assignee_id:assignee,master_id:me.id,priority,type:priority==='emergency'?'emergency':'planned',deadline:new Date(String(f.get('deadline'))).toISOString(),fault_code:fault||null}).select('id').single();if(error)throw error;id=order.id;setCreated(id);await uploadPhotos(files,id!,'before',me.id);try{await api.notifyNew(id!)}catch(error){setError(`Наряд создан. Уведомление не отправлено: ${message(error)}`);await queryClient.invalidateQueries();return}await queryClient.invalidateQueries();navigate(`/orders/${id}`)}catch(e){setError(`${id?'Наряд уже создан, повторно не выдавайте. Фото можно добавить в карточке. ':''}${message(e)}`);if(id)await queryClient.invalidateQueries()}finally{setBusy(false)}}}>
-  <Voice onText={async text=>{const parsed=await api.parseOrder({text});setDescription(parsed.description);setPriority(parsed.priority);setFault(parsed.fault_code||'');if(parsed.site_id)setSite(parsed.site_id);if(parsed.equipment_id)await suggest(parsed.equipment_id)}}/>
-  <label>Задача<textarea required value={description} onChange={e=>setDescription(e.target.value)} placeholder="Что нужно сделать?"/></label><div className="grid2"><label>Участок<select value={site} onChange={e=>{setSite(Number(e.target.value));setEquipment(0);setCandidates([])}}>{data.sites.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><label>Оборудование<select required value={equipment||''} onChange={e=>void suggest(Number(e.target.value))}><option value="">Выберите оборудование</option>{data.equipment.filter(e=>e.site_id===site).map(e=><option key={e.id} value={e.id}>{e.name} · {e.inv_number}</option>)}</select></label></div>
-  <label>Исполнитель<select required value={assignee||''} onChange={e=>setAssignee(Number(e.target.value))}><option value="">Выберите исполнителя</option>{data.employees.filter(e=>e.role==='worker').map(e=><option key={e.id} value={e.id}>{e.full_name} · {liveLabels[data.statuses.find(s=>s.employee_id===e.id)?.status||'off_shift']} · {e.specialty}</option>)}</select></label>{candidates.find(c=>c.employee_id===assignee)&&<p className="notice">ИИ-подсказка: {candidates.find(c=>c.employee_id===assignee)?.reason}</p>}
-  <div className="grid2"><label>Приоритет<select value={priority} onChange={e=>setPriority(e.target.value as Priority)}>{Object.entries(PRIORITY_LABEL).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label>Срок<input required type="datetime-local" name="deadline" defaultValue={(()=>{const d=new Date(Date.now()+2*3600000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)})()}/></label></div><label>Шифр неисправности<select value={fault} onChange={e=>setFault(e.target.value)}><option value="">Уточнит исполнитель</option>{data.faults.map(f=><option key={f.code} value={f.code}>{f.code} · {f.name}</option>)}</select></label><label>Фото до работ · до 5<input type="file" accept="image/*" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))}/></label><p>Выбрано фото: {files.length}</p>{error&&<p role="alert" className="error">{error}</p>}{created?<Link className="button" to={`/orders/${created}`}>Открыть созданный наряд</Link>:<button disabled={busy}>{busy?'Выдаём…':'Выдать наряд'}</button>}</form></>
+export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
+  const [params] = useSearchParams()
+  const initial = data.equipment.find(
+    (e) => e.id === Number(params.get('equipment')),
+  )
+  const [site, setSite] = useState(initial?.site_id || data.sites[0]?.id || 0),
+    [equipment, setEquipment] = useState(initial?.id || 0),
+    [description, setDescription] = useState(''),
+    [assignee, setAssignee] = useState(0),
+    [priority, setPriority] = useState<Priority>('normal'),
+    [fault, setFault] = useState(''),
+    [files, setFiles] = useState<File[]>([]),
+    [candidates, setCandidates] = useState<SuggestWorkerRes['candidates']>([]),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false),
+    [created, setCreated] = useState<number | null>(null)
+  const navigate = useNavigate()
+  const suggestionRequest = useRef(0)
+  const [deadline] = useState(() => {
+    const d = new Date(Date.now() + 2 * 3600000)
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16)
+  })
+  async function suggest(id: number) {
+    const request = ++suggestionRequest.current
+    setEquipment(id)
+    setCandidates([])
+    if (!id) return
+    try {
+      const result = await api.suggestWorker({
+        equipment_id: id,
+        fault_code: fault || null,
+      })
+      if (request !== suggestionRequest.current) return
+      setCandidates(result.candidates)
+      if (result.candidates[0]) setAssignee(result.candidates[0].employee_id)
+    } catch (e) {
+      setError(message(e))
+    }
+  }
+  return (
+    <>
+      <h1>Новый наряд</h1>
+      <p>
+        Продиктуйте задачу, проверьте оборудование и исполнителя, выдайте наряд.
+      </p>
+      <form
+        className="panel form"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          if (busy || created) return
+          setBusy(true)
+          setError('')
+          let id: number | null = null
+          try {
+            if (!equipment || !assignee || !description.trim())
+              throw new Error('Укажите задачу, оборудование и исполнителя')
+            if (files.length > 5) throw new Error('Не больше 5 фотографий')
+            const f = new FormData(e.currentTarget)
+            const { data: order, error } = await supabase
+              .from('orders')
+              .insert({
+                description: description.trim(),
+                site_id: site,
+                equipment_id: equipment,
+                assignee_id: assignee,
+                master_id: me.id,
+                priority,
+                type: priority === 'emergency' ? 'emergency' : 'planned',
+                deadline: new Date(String(f.get('deadline'))).toISOString(),
+                fault_code: fault || null,
+              })
+              .select('id')
+              .single()
+            if (error) throw error
+            id = order.id
+            setCreated(id)
+            await uploadPhotos(files, id!, 'before', me.id)
+            try {
+              await api.notifyNew(id!)
+            } catch (error) {
+              setError(
+                `Наряд создан. Уведомление не отправлено: ${message(error)}`,
+              )
+              await queryClient.invalidateQueries()
+              return
+            }
+            await queryClient.invalidateQueries()
+            navigate(`/orders/${id}`)
+          } catch (e) {
+            setError(
+              `${id ? 'Наряд уже создан, повторно не выдавайте. Фото можно добавить в карточке. ' : ''}${message(e)}`,
+            )
+            if (id) await queryClient.invalidateQueries()
+          } finally {
+            setBusy(false)
+          }
+        }}
+      >
+        <Voice
+          onText={async (text) => {
+            const parsed = await api.parseOrder({ text })
+            setDescription(parsed.description)
+            setPriority(parsed.priority)
+            setFault(parsed.fault_code || '')
+            if (parsed.site_id) setSite(parsed.site_id)
+            const found = data.equipment.find(
+              (e) => e.id === parsed.equipment_id,
+            )
+            if (found) {
+              setSite(found.site_id)
+              await suggest(found.id)
+            }
+          }}
+        />
+        <label>
+          Задача
+          <textarea
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Что нужно сделать?"
+          />
+        </label>
+        <div className="grid2">
+          <label>
+            Участок
+            <select
+              aria-label="Участок"
+              value={site}
+              onChange={(e) => {
+                setSite(Number(e.target.value))
+                suggestionRequest.current++
+                setEquipment(0)
+                setCandidates([])
+              }}
+            >
+              {data.sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Оборудование
+            <select
+              aria-label="Оборудование"
+              required
+              value={equipment || ''}
+              onChange={(e) => void suggest(Number(e.target.value))}
+            >
+              <option value="">Выберите оборудование</option>
+              {data.equipment
+                .filter((e) => e.site_id === site)
+                .map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} · {e.inv_number}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+        <label>
+          Исполнитель
+          <select
+            aria-label="Исполнитель"
+            required
+            value={assignee || ''}
+            onChange={(e) => setAssignee(Number(e.target.value))}
+          >
+            <option value="">Выберите исполнителя</option>
+            {data.employees
+              .filter((e) => e.role === 'worker')
+              .map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.full_name} ·{' '}
+                  {
+                    liveLabels[
+                      data.statuses.find((s) => s.employee_id === e.id)
+                        ?.status || 'off_shift'
+                    ]
+                  }{' '}
+                  · {e.specialty}
+                </option>
+              ))}
+          </select>
+        </label>
+        {candidates.find((c) => c.employee_id === assignee) && (
+          <p className="notice">
+            ИИ-подсказка:{' '}
+            {candidates.find((c) => c.employee_id === assignee)?.reason}
+          </p>
+        )}
+        <div className="grid2">
+          <label>
+            Приоритет
+            <select
+              aria-label="Приоритет"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as Priority)}
+            >
+              {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Срок
+            <input
+              required
+              type="datetime-local"
+              name="deadline"
+              defaultValue={deadline}
+            />
+          </label>
+        </div>
+        <label>
+          Шифр неисправности
+          <select
+            aria-label="Шифр неисправности"
+            value={fault}
+            onChange={(e) => setFault(e.target.value)}
+          >
+            <option value="">Уточнит исполнитель</option>
+            {data.faults.map((f) => (
+              <option key={f.code} value={f.code}>
+                {f.code} · {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Фото до работ · до 5
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
+          />
+        </label>
+        <p>Выбрано фото: {files.length}</p>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {created ? (
+          <Link className="button" to={`/orders/${created}`}>
+            Открыть созданный наряд
+          </Link>
+        ) : (
+          <button disabled={busy}>{busy ? 'Выдаём…' : 'Выдать наряд'}</button>
+        )}
+      </form>
+    </>
+  )
 }
