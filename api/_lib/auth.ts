@@ -23,7 +23,8 @@ export async function requireEmployee(req: VercelRequest, res: VercelResponse): 
 }
 
 export function requireCronSecret(req: VercelRequest, res: VercelResponse): boolean {
-  if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || req.headers['x-cron-secret'] !== secret) {
     res.status(401).json({ error: 'Bad cron secret' })
     return false
   }
