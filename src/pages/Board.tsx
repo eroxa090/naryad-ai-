@@ -84,7 +84,7 @@ function Column({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   return (
-    <section ref={setNodeRef} className={`column ${isOver ? 'over' : ''}`}>
+    <section ref={setNodeRef} data-status={status} className={`column ${isOver ? 'over' : ''}`}>
       <h2>
         {t(ORDER_STATUS_LABEL[status])} <small>{orders.length}</small>
       </h2>
