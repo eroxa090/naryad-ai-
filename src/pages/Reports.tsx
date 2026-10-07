@@ -17,6 +17,7 @@ import { api } from '../lib/api'
 import { rows, message } from '../lib/supabase'
 import { exportExcel, exportPdf } from '../lib/export'
 import { MaterialsReport } from '../components/MaterialsReport'
+import { DowntimeReport } from '../components/DowntimeReport'
 const hours = (a: string, b: string) =>
   Math.max(0, (new Date(b).getTime() - new Date(a).getTime()) / 3600000)
 const localInput = (date: Date) =>
@@ -331,6 +332,7 @@ function ReportContent({ data }: { data: AppData }) {
           <p>Нет аварийных нарядов за период.</p>
         )}
       </section>
+      <DowntimeReport data={data} orders={filtered} />
       <MaterialsReport data={data} orders={filtered} />
       <section className="panel">
         <h2>Выводы ИИ по истории нарядов</h2>
