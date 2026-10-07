@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitch } from './components/LanguageSwitch'
+import { t } from './lib/i18n'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
@@ -24,7 +27,9 @@ import { OrderDetail } from './pages/OrderDetail'
 const EquipmentPage = lazy(() =>
   import('./pages/Equipment').then((m) => ({ default: m.EquipmentPage })),
 )
-const PrintQR = lazy(() => import('./pages/PrintQR').then(m => ({default:m.PrintQR})))
+const PrintQR = lazy(() =>
+  import('./pages/PrintQR').then((m) => ({ default: m.PrintQR })),
+)
 const Reports = lazy(() =>
   import('./pages/Reports').then((m) => ({ default: m.Reports })),
 )
@@ -34,12 +39,14 @@ function Login() {
   return (
     <main className="login">
       <section className="panel">
+        <LanguageSwitch />
         <div className="brand">
-          Наряд<span>AI</span>
+          {t('Наряд')}
+          <span>AI</span>
         </div>
-        <p className="eyebrow">СМЕНА ПОД КОНТРОЛЕМ</p>
-        <h1>Начнём работу</h1>
-        <p>Войдите по логину и шестизначному ПИН.</p>
+        <p className="eyebrow">{t('СМЕНА ПОД КОНТРОЛЕМ')}</p>
+        <h1>{t('Начнём работу')}</h1>
+        <p>{t('Войдите по логину и шестизначному ПИН.')}</p>
         <form
           onSubmit={async (e) => {
             e.preventDefault()
@@ -60,7 +67,7 @@ function Login() {
           }}
         >
           <label>
-            Логин
+            {t('Логин')}
             <input
               name="login"
               required
@@ -70,7 +77,7 @@ function Login() {
             />
           </label>
           <label>
-            ПИН
+            {t('ПИН')}
             <input
               name="pin"
               required
@@ -88,11 +95,11 @@ function Login() {
             </p>
           )}
           <button disabled={busy || !configured}>
-            {busy ? 'Входим…' : 'Войти'}
+            {busy ? t('Входим…') : t('Войти')}
           </button>
           {!configured && (
             <p className="error">
-              Настройте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.
+              {t('Настройте VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY.')}
             </p>
           )}
         </form>
@@ -226,43 +233,65 @@ function Workspace({ session }: { session: Session }) {
             void data.refetch()
           }}
         >
-          Повторить
+          {t('Повторить')}
         </button>
-        <button onClick={signOut}>Выйти</button>
+        <button onClick={signOut}>{t('Выйти')}</button>
       </main>
     )
   if (!employee.data || !data.data)
-    return <main aria-busy="true">Загружаем смену…</main>
+    return <main aria-busy="true">{t('Загружаем смену…')}</main>
   const me = employee.data,
     master = ['master', 'admin'].includes(me.role),
     reports = me.role !== 'worker'
   return (
     <>
       <header>
+        <LanguageSwitch />
         <NavLink className="brand" to="/">
-          Наряд<span>AI</span>
+          {t('Наряд')}
+          <span>AI</span>
         </NavLink>
-        <details className="telegram-connect"><summary>Подключить Telegram</summary><div><a className="button" href="https://t.me/naryad_ai_kz_bot" target="_blank" rel="noreferrer">Открыть бота</a><p>Отправьте боту команду:</p><code>/start &lt;логин&gt; &lt;ПИН&gt;</code><p>Ваш логин: <b>{me.login}</b>. Вместо &lt;ПИН&gt; введите свой шестизначный ПИН.</p></div></details><span className="user">
+        <details className="telegram-connect">
+          <summary>{t('Подключить Telegram')}</summary>
+          <div>
+            <a
+              className="button"
+              href="https://t.me/naryad_ai_kz_bot"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('Открыть бота')}
+            </a>
+            <p>{t('Отправьте боту команду:')}</p>
+            <code>{t('/start &lt;логин&gt; &lt;ПИН&gt;')}</code>
+            <p>
+              {t('Ваш логин:')}
+              <b>{me.login}</b>
+              {t('. Вместо &lt;ПИН&gt; введите свой шестизначный ПИН.')}
+            </p>
+          </div>
+        </details>
+        <span className="user">
           {me.full_name}
           <small>
             {master
-              ? 'Мастер'
+              ? t('Мастер')
               : me.role === 'worker'
-                ? 'Исполнитель'
-                : 'Руководитель'}
+                ? t('Исполнитель')
+                : t('Руководитель')}
           </small>
         </span>
         <button className="secondary" onClick={signOut}>
-          Выйти
+          {t('Выйти')}
         </button>
       </header>
       <nav>
         <NavLink to="/orders">
-          {me.role === 'worker' ? 'Мои наряды' : 'Панель смены'}
+          {me.role === 'worker' ? t('Мои наряды') : t('Панель смены')}
         </NavLink>
-        {master && <NavLink to="/new">＋ Создать наряд</NavLink>}
-        <NavLink to="/equipment">Оборудование / QR</NavLink>
-        {reports && <NavLink to="/reports">Отчёты и ИИ</NavLink>}
+        {master && <NavLink to="/new">{t('＋ Создать наряд')}</NavLink>}
+        <NavLink to="/equipment">{t('Оборудование / QR')}</NavLink>
+        {reports && <NavLink to="/reports">{t('Отчёты и ИИ')}</NavLink>}
         {install && (
           <button
             onClick={async () => {
@@ -270,28 +299,31 @@ function Workspace({ session }: { session: Session }) {
               setInstall(null)
             }}
           >
-            Установить
+            {t('Установить')}
           </button>
         )}
       </nav>
       <main>
         {aiMock && (
           <div className="notice">
-            ИИ: демонстрационные ответы. Наряды и статусы сохраняются в рабочей
-            базе.
+            {t(
+              'ИИ: демонстрационные ответы. Наряды и статусы сохраняются в рабочей базе.',
+            )}
           </div>
         )}
         {!online && (
           <div className="notice">
-            Нет сети. Действия со статусами будут сохранены в очередь.
+            {t('Нет сети. Действия со статусами будут сохранены в очередь.')}
           </div>
         )}
         {queue.length > 0 && (
           <section className="notice">
-            Ожидают отправки: {queue.length}
+            {t('Ожидают отправки:')}
+            {queue.length}
             {queue.map((q) => (
               <div key={q.id}>
-                Наряд {q.args.p_order_id}: {q.args.p_action}
+                {t('Наряд')}
+                {q.args.p_order_id}: {q.args.p_action}
                 {q.error && (
                   <>
                     <p className="error">{q.error}</p>
@@ -303,7 +335,7 @@ function Workspace({ session }: { session: Session }) {
                         await flushActions()
                       }}
                     >
-                      Повторить
+                      {t('Повторить')}
                     </button>
                     <button
                       onClick={async () => {
@@ -312,7 +344,7 @@ function Workspace({ session }: { session: Session }) {
                         await flushActions()
                       }}
                     >
-                      Удалить действие
+                      {t('Удалить действие')}
                     </button>
                   </>
                 )}
@@ -324,13 +356,16 @@ function Workspace({ session }: { session: Session }) {
           <div className="notice" role="status">
             {banner}
             <button className="secondary" onClick={() => setBanner('')}>
-              Понятно
+              {t('Понятно')}
             </button>
           </div>
         )}
-        <Suspense fallback={<p>Загрузка экрана…</p>}>
+        <Suspense fallback={<p>{t('Загрузка экрана…')}</p>}>
           <Routes>
-            <Route path="/equipment/print" element={<PrintQR data={data.data}/>} />
+            <Route
+              path="/equipment/print"
+              element={<PrintQR data={data.data} />}
+            />
             <Route
               path="/orders"
               element={<Board data={data.data} me={me} />}
@@ -375,7 +410,7 @@ function Workspace({ session }: { session: Session }) {
           </Routes>
         </Suspense>
       </main>
-      <footer>НарядAI · Решение принимает человек</footer>
+      <footer>{t('НарядAI · Решение принимает человек')}</footer>
     </>
   )
 }
@@ -400,10 +435,11 @@ function AuthApp() {
       <Login />
     )
   ) : (
-    <main>Загрузка…</main>
+    <main>{t('Загрузка…')}</main>
   )
 }
 export default function App() {
+  useTranslation()
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
