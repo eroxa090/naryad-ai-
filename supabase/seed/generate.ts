@@ -144,8 +144,8 @@ const DESCRIPTIONS: Record<string, string[]> = {
 
 const WORKERS = [
   // бригада 1 (дневная)
-  { login: 'worker1', name: 'Ахметов Ерлан', spec: 'слесарь', grade: 5, brigade: 'Бригада 1', shift: 'day' },
-  { login: 'worker2', name: 'Нурланов Данияр', spec: 'электрик', grade: 5, brigade: 'Бригада 1', shift: 'day' },
+  { login: 'worker1', name: 'Бауыржан Амиржан', spec: 'слесарь', grade: 5, brigade: 'Бригада 1', shift: 'day' },
+  { login: 'worker2', name: 'Жанболатулы Бекнур', spec: 'электрик', grade: 5, brigade: 'Бригада 1', shift: 'day' },
   { login: 'worker3', name: 'Сейтжанов Асхат', spec: 'слесарь', grade: 4, brigade: 'Бригада 1', shift: 'day' },
   { login: 'worker4', name: 'Ким Виктор', spec: 'сварщик', grade: 5, brigade: 'Бригада 1', shift: 'day' },
   { login: 'worker5', name: 'Иванов Сергей', spec: 'слесарь', grade: 3, brigade: 'Бригада 1', shift: 'day' },
@@ -164,9 +164,9 @@ const WORKERS = [
 ] as const
 
 const STAFF = [
-  { login: 'master1', name: 'Сейткали Бахытжан', spec: 'мастер', role: 'master', shift: 'day' },
-  { login: 'master2', name: 'Григорьев Олег', spec: 'мастер', role: 'master', shift: 'night' },
-  { login: 'manager1', name: 'Мусин Канат', spec: 'начальник участка', role: 'manager', shift: 'day' },
+  { login: 'master1', name: 'Мураткали Ерсултан', spec: 'мастер', role: 'master', shift: 'day' },
+  { login: 'master2', name: 'Беккалиев Султан', spec: 'мастер', role: 'master', shift: 'night' },
+  { login: 'manager1', name: 'Муратов Еламан', spec: 'начальник участка', role: 'manager', shift: 'day' },
   { login: 'admin1', name: 'Администратор', spec: 'администратор', role: 'admin', shift: 'day' },
 ] as const
 
