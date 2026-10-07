@@ -1,6 +1,6 @@
 import { t } from '../lib/i18n'
 import { useState } from 'react'
-import { Camera, Check, Clock, Hand, Pause, Play, Send, TriangleAlert } from 'lucide-react'
+import { Camera, Check, CircleAlert, Clock, Hand, Pause, Play, Send, TriangleAlert } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import type {
@@ -301,8 +301,9 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
               <h3>{t('Обратная связь исполнителю')}</h3>
               <p>{review.worker_feedback}</p>
               {review.checks.map((c, i) => (
-                <p key={i}>
-                  {c.ok ? '✓' : '!'} {c.note}
+                <p key={i} className={`check-item ${c.ok ? 'ok' : 'warn'}`}>
+                  {c.ok ? <Check aria-hidden size={18} /> : <CircleAlert aria-hidden size={18} />}
+                  <span>{c.note}</span>
                 </p>
               ))}
               {review.master_comment && (

@@ -1,6 +1,7 @@
 import i18n from '../lib/i18n'
 import { t } from '../lib/i18n'
 import { useState } from 'react'
+import { GripVertical } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   DndContext,
@@ -55,8 +56,7 @@ function Card({
           t('Не назначен')}
       </p>
       <small className={order.is_overdue ? 'error' : ''}>
-        {order.is_overdue ? t('Просрочен · ') : ''}
-        {t('Срок:')} {dateLabel(order.deadline)}
+        {order.is_overdue ? t('Просрочен, срок') : t('Срок')} {dateLabel(order.deadline)}
       </small>
       {draggable && (
         <button
@@ -65,7 +65,7 @@ function Card({
           {...listeners}
           {...attributes}
         >
-          {t('↔ Переместить')}
+          <GripVertical aria-hidden size={16} /> {t('Переместить')}
         </button>
       )}
     </article>

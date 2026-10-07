@@ -137,7 +137,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             }
           }}
         />
-        {voiceHint && <p className="notice">⚠️ {voiceHint}</p>}
+        {voiceHint && <p className="notice">{voiceHint}</p>}
         <label>
           Задача
           <textarea

@@ -323,7 +323,7 @@ function ReportContent({ data }: { data: AppData }) {
         {top.length ? (
           top.map((e) => (
             <p key={e.id}>
-              <b>{e.name}</b> · аварийных нарядов: {e.count}
+              <b>{e.name}</b> <span className="badge">{e.count}</span>
             </p>
           ))
         ) : (
