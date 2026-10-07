@@ -24,7 +24,13 @@ const RecognitionCtor = (): (new () => Recognition) | undefined =>
   (window as unknown as Record<string, new () => Recognition>).SpeechRecognition ??
   (window as unknown as Record<string, new () => Recognition>).webkitSpeechRecognition
 
-export function Voice({ onText }: { onText: (text: string) => void | Promise<void> }) {
+export function Voice({
+  onText,
+  hint,
+}: {
+  onText: (text: string) => void | Promise<void>
+  hint?: string
+}) {
   const recorder = useRef<MediaRecorder | null>(null)
   const recognition = useRef<Recognition | null>(null)
   const [state, setState] = useState<'idle' | 'recording' | 'loading'>('idle')
@@ -161,7 +167,7 @@ export function Voice({ onText }: { onText: (text: string) => void | Promise<voi
           </>
         )}
       </button>
-      {state === 'recording' && <p className="muted">{t('Говорите: оборудование, что случилось, срочность.')}</p>}
+      {state === 'recording' && <p className="muted">{hint ?? t('Говорите: оборудование, что случилось, срочность.')}</p>}
       {heard && (
         <p className="heard">
           {t('Распознано')}: «{heard}»

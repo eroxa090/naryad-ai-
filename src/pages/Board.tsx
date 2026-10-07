@@ -61,7 +61,7 @@ function Card({
       {draggable && (
         <button
           className="drag secondary"
-          aria-label={`Переместить наряд ${order.number}`}
+          aria-label={`${t('Переместить наряд')} ${order.number}`}
           {...listeners}
           {...attributes}
         >
@@ -335,12 +335,12 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
           if (!canEdit) return
           try {
             if (target === 'closed' && o.status === 'submitted') {
-              if (window.confirm(`Закрыть наряд №${o.number}?`))
+              if (window.confirm(`${t('Закрыть наряд')} №${o.number}?`))
                 setNotice(
                   await changeStatus({ p_order_id: o.id, p_action: 'close' }),
                 )
             } else if (target === 'cancelled') {
-              if (window.confirm(`Отменить наряд №${o.number}?`))
+              if (window.confirm(`${t('Отменить наряд')} №${o.number}?`))
                 setNotice(
                   await changeStatus({ p_order_id: o.id, p_action: 'cancel' }),
                 )

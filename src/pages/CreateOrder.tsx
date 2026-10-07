@@ -54,9 +54,9 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
   }
   return (
     <>
-      <h1>Новый наряд</h1>
+      <h1>{t('Новый наряд')}</h1>
       <p>
-        Продиктуйте задачу, проверьте оборудование и исполнителя, выдайте наряд.
+        {t('Продиктуйте задачу, проверьте оборудование и исполнителя, выдайте наряд.')}
       </p>
       <form
         className="panel form"
@@ -68,8 +68,8 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
           let id: number | null = null
           try {
             if (!equipment || !assignee || !description.trim())
-              throw new Error('Укажите задачу, оборудование и исполнителя')
-            if (files.length > 5) throw new Error('Не больше 5 фотографий')
+              throw new Error(t('Укажите задачу, оборудование и исполнителя'))
+            if (files.length > 5) throw new Error(t('Не больше 5 фотографий'))
             const f = new FormData(e.currentTarget)
             const { data: order, error } = await supabase
               .from('orders')
@@ -94,7 +94,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
               await api.notifyNew(id!)
             } catch (error) {
               setError(
-                `Наряд создан. Уведомление не отправлено: ${message(error)}`,
+                `${t('Наряд создан. Уведомление не отправлено:')} ${message(error)}`,
               )
               await queryClient.invalidateQueries()
               return
@@ -103,7 +103,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             navigate(`/orders/${id}`)
           } catch (e) {
             setError(
-              `${id ? 'Наряд уже создан, повторно не выдавайте. Фото можно добавить в карточке. ' : ''}${message(e)}`,
+              `${id ? `${t('Наряд уже создан, повторно не выдавайте. Фото можно добавить в карточке.')} ` : ''}${message(e)}`,
             )
             if (id) await queryClient.invalidateQueries()
           } finally {
@@ -139,19 +139,19 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
         />
         {voiceHint && <p className="notice">⚠️ {voiceHint}</p>}
         <label>
-          Задача
+          {t('Задача')}
           <textarea
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Что нужно сделать?"
+            placeholder={t('Что нужно сделать?')}
           />
         </label>
         <div className="grid2">
           <label>
-            Участок
+            {t('Участок')}
             <select
-              aria-label="Участок"
+              aria-label={t('Участок')}
               value={site}
               onChange={(e) => {
                 setSite(Number(e.target.value))
@@ -168,14 +168,14 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             </select>
           </label>
           <label>
-            Оборудование
+            {t('Оборудование')}
             <select
-              aria-label="Оборудование"
+              aria-label={t('Оборудование')}
               required
               value={equipment || ''}
               onChange={(e) => void suggest(Number(e.target.value))}
             >
-              <option value="">Выберите оборудование</option>
+              <option value="">{t('Выберите оборудование')}</option>
               {data.equipment
                 .filter((e) => e.site_id === site)
                 .map((e) => (
@@ -187,52 +187,45 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
           </label>
         </div>
         <label>
-          Исполнитель
+          {t('Исполнитель')}
           <select
-            aria-label="Исполнитель"
+            aria-label={t('Исполнитель')}
             required
             value={assignee || ''}
             onChange={(e) => setAssignee(Number(e.target.value))}
           >
-            <option value="">Выберите исполнителя</option>
+            <option value="">{t('Выберите исполнителя')}</option>
             {data.employees
               .filter((e) => e.role === 'worker')
               .map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.full_name} ·{' '}
-                  {
-                    liveLabels[
-                      data.statuses.find((s) => s.employee_id === e.id)
-                        ?.status || 'off_shift'
-                    ]
-                  }{' '}
-                  · {e.specialty}
+                  {workerLabel(data, e)}
                 </option>
               ))}
           </select>
         </label>
         {candidates.find((c) => c.employee_id === assignee) && (
           <p className="notice">
-            ИИ-подсказка:{' '}
+            {t('ИИ-подсказка:')}{' '}
             {candidates.find((c) => c.employee_id === assignee)?.reason}
           </p>
         )}
         <div className="grid2">
           <label>
-            Тип работ
+            {t('Тип работ')}
             <select
-              aria-label="Тип работ"
+              aria-label={t('Тип работ')}
               value={type}
               onChange={(e) => setType(e.target.value as OrderType)}
             >
-              <option value="emergency">Внеплановый (поломка)</option>
-              <option value="planned">Плановый (ППР, ТО)</option>
+              <option value="emergency">{t('Внеплановый (поломка)')}</option>
+              <option value="planned">{t('Плановый (ППР, ТО)')}</option>
             </select>
           </label>
           <label>
-            Приоритет
+            {t('Приоритет')}
             <select
-              aria-label="Приоритет"
+              aria-label={t('Приоритет')}
               value={priority}
               onChange={(e) => {
                 const next = e.target.value as Priority
@@ -243,7 +236,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             >
               {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>
-                  {v}
+                  {t(v)}
                 </option>
               ))}
             </select>
@@ -251,7 +244,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
         </div>
         <div className="grid2">
           <label>
-            Срок
+            {t('Срок')}
             <input
               required
               type="datetime-local"
@@ -261,13 +254,13 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
           </label>
         </div>
         <label>
-          Шифр неисправности
+          {t('Шифр неисправности')}
           <select
-            aria-label="Шифр неисправности"
+            aria-label={t('Шифр неисправности')}
             value={fault}
             onChange={(e) => setFault(e.target.value)}
           >
-            <option value="">Уточнит исполнитель</option>
+            <option value="">{t('Уточнит исполнитель')}</option>
             {data.faults.map((f) => (
               <option key={f.code} value={f.code}>
                 {f.code} · {f.name}
@@ -277,7 +270,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
         </label>
         <label>
           <span>
-            <Camera aria-hidden size={20} /> Фото до работ (до 5)
+            <Camera aria-hidden size={20} /> {t('Фото до работ · до 5')}
           </span>
           <input
             type="file"
@@ -286,7 +279,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             onChange={(e) => setFiles(Array.from(e.target.files || []))}
           />
         </label>
-        <p>Выбрано фото: {files.length}</p>
+        <p>{t('Выбрано фото:')} {files.length}</p>
         {error && (
           <p role="alert" className="error">
             {error}
@@ -294,12 +287,27 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
         )}
         {created ? (
           <Link className="button" to={`/orders/${created}`}>
-            Открыть созданный наряд
+            {t('Открыть созданный наряд')}
           </Link>
         ) : (
-          <button disabled={busy}>{busy ? 'Выдаём…' : 'Выдать наряд'}</button>
+          <button disabled={busy}>{busy ? t('Выдаём…') : t('Выдать наряд')}</button>
         )}
       </form>
     </>
   )
+}
+// «Иванов · В работе · выполняет наряд №N · в очереди 2 · Слесарь»
+function workerLabel(data: AppData, e: Employee) {
+  const live = data.statuses.find((s) => s.employee_id === e.id)
+  const current = data.orders.find((o) => o.id === live?.current_order_id)
+  return [
+    e.full_name,
+    t(liveLabels[live?.status || 'off_shift']),
+    live?.current_order_id &&
+      `${t('выполняет наряд №')}${current?.number ?? live.current_order_id}`,
+    live?.queue_count ? `${t('в очереди')} ${live.queue_count}` : '',
+    e.specialty,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }

@@ -1019,3 +1019,87 @@ footer { color: var(--ink-2); font-weight: 600; }
 .tg-banner > span { display: flex; gap: 10px; align-items: flex-start; }
 .tg-banner > span svg { margin-top: 3px; }
 .action-bar .more button { white-space: nowrap; font-size: 1rem; padding: 10px 8px; gap: 6px; }
+/* отчёты: таблицы и переключатель группировки */
+.segmented { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.segmented button { flex: 1 1 160px; }
+.segmented button[aria-pressed='true'] { background: var(--signal); color: var(--graphite); border-color: var(--graphite); }
+.table-wrap { overflow-x: auto; margin: 0 0 14px; border: 2px solid var(--graphite); border-radius: 6px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 1rem; }
+.report-table th, .report-table td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 2px solid var(--line-soft); }
+.report-table th { background: var(--graphite); color: #fff; font-weight: 800; white-space: nowrap; }
+.report-table td.num { font-weight: 900; white-space: nowrap; }
+.report-table tr.over td { background: #fff7cc; }
+.report-table tr.over td:first-child { border-left: 8px solid var(--danger); }
+.report-table tr.over td.num { color: var(--danger); }
+.report-table .causes { margin: 0; padding-left: 18px; }
+.report-table .causes li { margin: 2px 0; }
+.split { height: 18px; min-width: 140px; border: 2px solid var(--ink); border-radius: 6px; background: repeating-linear-gradient(45deg, #fff, #fff 4px, #d8d8d8 4px, #d8d8d8 8px); overflow: hidden; margin-bottom: 4px; }
+.split span { display: block; height: 100%; background: var(--danger); }
+/* уведомления: колокольчик со счётчиком и список */
+nav .bell, .header-bell .bell { position: relative; display: inline-flex; }
+nav .bell .count, .header-bell .bell .count {
+  position: absolute; top: -8px; right: -14px; min-width: 24px; height: 24px; padding: 0 5px;
+  border-radius: 12px; background: var(--danger); color: #fff; border: 2px solid #fff;
+  font-size: 0.8rem; font-weight: 900; line-height: 20px; text-align: center; font-style: normal;
+}
+.notifications { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
+.notifications li { padding: 14px 16px; border: 2px solid var(--line-soft); border-radius: 8px; background: var(--paper); }
+.notifications li.unread { border: 2px solid var(--graphite); border-left: 12px solid var(--signal); }
+.notifications li.read { color: var(--ink-2); }
+.notifications li p { margin: 8px 0 10px; font-size: 1.05rem; }
+.notifications .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.notifications .actions > * { flex: 1 1 200px; text-align: center; display: inline-flex; align-items: center; justify-content: center; }
+.badge.new { margin-left: 8px; background: var(--info); color: #fff; }
+/* администрирование справочников */
+.admin-toolbar { padding: 0; margin: 0 0 14px; }
+.admin-toolbar button { flex: 0 0 auto; }
+.admin-form .check { display: flex; align-items: center; gap: 12px; min-height: 60px; }
+.admin-form .check input { width: 32px; height: 32px; min-height: 0; }
+.admin-actions { display: flex; flex-wrap: wrap; }
+.admin-actions button { flex: 1 1 200px; }
+.report-table tr.editing td { background: #e6efff; }
+.report-table td button { min-height: 64px; white-space: nowrap; padding: 8px 14px; }
+/* телефон: нижнее меню не трогаем — колокольчик в шапке, справочники в «Профиле» */
+.header-bell { display: none; }
+@media (max-width: 700px) {
+  nav > a.nav-bell, nav > a.nav-admin { display: none; }
+  .header-bell {
+    display: inline-flex; align-items: center; justify-content: center; margin-left: auto;
+    min-width: 56px; min-height: 56px; border: 2px solid #fff; border-radius: 10px; color: #fff;
+  }
+  .header-bell.active { background: var(--signal); border-color: var(--signal); color: var(--graphite); }
+  .header-bell + .profile { margin-left: 0; }
+  .header-bell .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+.profile .button { display: flex; align-items: center; justify-content: center; }
+.unread-total { margin: -4px 0 12px; font-size: 1.1rem; }
+/* таблицы на телефоне: каждая строка — карточка «подпись — значение» */
+@media (max-width: 700px) {
+  .table-wrap { overflow: visible; border: 0; }
+  .report-table, .report-table tbody, .report-table tr, .report-table td { display: block; width: 100%; }
+  .report-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .report-table tr { border: 2px solid var(--graphite); border-radius: 6px; margin-bottom: 12px; background: var(--paper); overflow: hidden; }
+  .report-table td { border-bottom: 1px solid var(--line-soft); padding: 10px 12px; }
+  .report-table td:last-child { border-bottom: 0; }
+  .report-table td:first-child { font-size: 1.1rem; background: #f1f1f1; }
+  .report-table td[data-label] { display: flex; justify-content: space-between; gap: 12px; text-align: right; }
+  .report-table td[data-label]::before { content: attr(data-label); font-weight: 700; color: var(--ink-2); text-align: left; }
+  .report-table td[data-label] > * { text-align: left; }
+  .report-table td.row-action button { width: 100%; }
+  .report-table tr.over td:first-child { border-left: 0; background: #fff7cc; }
+  .report-table tr.over { border-left: 10px solid var(--danger); }
+}
+@media (max-width: 700px) {
+  .report-table td[data-label] > * { flex: 1 1 auto; min-width: 0; }
+  .report-table .share { max-width: 60%; }
+  .segmented button { flex-basis: 130px; }
+}
+.warn-ico { color: var(--danger); margin-right: 6px; vertical-align: -0.2em; }
+svg.big-ico { display: block; margin: 0 auto 8px; }
+.warn-ico { color: var(--danger); margin-right: 6px; vertical-align: -0.2em; }
+svg.big-ico { display: block; margin: 0 auto 8px; }
+svg.inline-ico { display: inline-block; vertical-align: -0.2em; }
+/* длинные подписи нижнего меню («Оборудование») переносим, а не налезаем на соседей */
+@media (max-width: 700px) {
+  nav a, nav button { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+}

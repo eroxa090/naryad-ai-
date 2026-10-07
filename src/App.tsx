@@ -1,4 +1,4 @@
-import { ChartColumn, ClipboardList, Download, Factory, Plus, Send, UserRound } from 'lucide-react'
+import { Bell, ChartColumn, ClipboardList, Download, Factory, Plus, Send, Settings, UserRound } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitch } from './components/LanguageSwitch'
 import { t } from './lib/i18n'
@@ -22,6 +22,7 @@ import {
   type PendingAction,
 } from './lib/offline'
 import { useData } from './lib/data'
+import { useUnreadCount } from './lib/notifications'
 import { Board } from './pages/Board'
 import { CreateOrder } from './pages/CreateOrder'
 import { OrderDetail } from './pages/OrderDetail'
@@ -33,6 +34,14 @@ const PrintQR = lazy(() =>
 )
 const Reports = lazy(() =>
   import('./pages/Reports').then((m) => ({ default: m.Reports })),
+)
+const AdminPage = lazy(() =>
+  import('./pages/Admin').then((m) => ({ default: m.AdminPage })),
+)
+const NotificationsPage = lazy(() =>
+  import('./pages/Notifications').then((m) => ({
+    default: m.NotificationsPage,
+  })),
 )
 function Login() {
   const [error, setError] = useState('')
@@ -177,7 +186,7 @@ function Workspace({ session }: { session: Session }) {
             payload.eventType === 'INSERT' &&
             payload.new.assignee_id === id
           ) {
-            setBanner(`Новый наряд №${payload.new.number}`)
+            setBanner(`${t('Новый наряд')} №${payload.new.number}`)
             try {
               const ctx = new AudioContext()
               const osc = ctx.createOscillator()
@@ -266,6 +275,7 @@ function Workspace({ session }: { session: Session }) {
         <button className="secondary" onClick={signOut}>
           {t('Выйти')}
         </button>
+        <NotificationsLink me={me} header />
         <details className="profile">
           <summary aria-label={t('Профиль')}>
             <UserRound aria-hidden size={22} /> {t('Профиль')}
@@ -277,6 +287,11 @@ function Workspace({ session }: { session: Session }) {
               <small>{roleLabel}</small>
             </p>
             <LanguageSwitch />
+            {me.role === 'admin' && (
+              <NavLink className="button secondary" to="/admin">
+                <Settings aria-hidden size={20} /> {t('Справочники')}
+              </NavLink>
+            )}
             <TelegramHelp login={me.login} />
             <button className="secondary" onClick={signOut}>
               {t('Выйти')}
@@ -305,6 +320,13 @@ function Workspace({ session }: { session: Session }) {
             {t('Отчёты')}
           </NavLink>
         )}
+        {me.role === 'admin' && (
+          <NavLink to="/admin" className="nav-admin">
+            <Settings className="ico" aria-hidden />
+            {t('Справочники')}
+          </NavLink>
+        )}
+        <NotificationsLink me={me} />
         {install && (
           <button
             onClick={async () => {
@@ -399,6 +421,20 @@ function Workspace({ session }: { session: Session }) {
               }
             />
             <Route
+              path="/admin"
+              element={
+                me.role === 'admin' ? (
+                  <AdminPage data={data.data} />
+                ) : (
+                  <Navigate to="/orders" replace />
+                )
+              }
+            />
+            <Route
+              path="/notifications"
+              element={<NotificationsPage data={data.data} me={me} />}
+            />
+            <Route
               path="/equipment"
               element={<EquipmentPage data={data.data} canCreate={master} />}
             />
@@ -460,6 +496,30 @@ export default function App() {
         <AuthApp />
       </BrowserRouter>
     </QueryClientProvider>
+  )
+}
+
+// В нижнем меню на телефоне места нет — там колокольчик показывается в шапке (header).
+function NotificationsLink({ me, header }: { me: Employee; header?: boolean }) {
+  const unread = useUnreadCount(me).data ?? 0
+  return (
+    <NavLink
+      to="/notifications"
+      className={header ? 'header-bell' : 'nav-bell'}
+      aria-label={
+        unread
+          ? `${t('Уведомления')}: ${t('непрочитанных')} ${unread}`
+          : t('Уведомления')
+      }
+    >
+      <span className="bell" aria-hidden>
+        <Bell className="ico" />
+        {unread > 0 && (
+          <b className="count">{unread > 99 ? '99+' : unread}</b>
+        )}
+      </span>
+      <span className="nav-label">{t('Уведомления')}</span>
+    </NavLink>
   )
 }
 
