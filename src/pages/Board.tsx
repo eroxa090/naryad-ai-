@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -40,7 +41,7 @@ function Card({
       <div className="row">
         <span className="eyebrow">№ {order.number}</span>
         <span className={`badge ${order.status}`}>
-          {ORDER_STATUS_LABEL[order.status]}
+          {t(ORDER_STATUS_LABEL[order.status])}
         </span>
       </div>
       <Link to={`/orders/${order.id}`}>
@@ -49,11 +50,11 @@ function Card({
       <p>{data.equipment.find((e) => e.id === order.equipment_id)?.name}</p>
       <p>
         {data.employees.find((e) => e.id === order.assignee_id)?.full_name ||
-          'Не назначен'}
+          t('Не назначен')}
       </p>
       <small className={order.is_overdue ? 'error' : ''}>
-        {order.is_overdue ? 'Просрочен · ' : ''}Срок:{' '}
-        {dateLabel(order.deadline)}
+        {order.is_overdue ? t('Просрочен · ') : ''}
+        {t('Срок:')} {dateLabel(order.deadline)}
       </small>
       {draggable && (
         <button
@@ -62,7 +63,7 @@ function Card({
           {...listeners}
           {...attributes}
         >
-          ↔ Переместить
+          {t('↔ Переместить')}
         </button>
       )}
     </article>
@@ -83,12 +84,12 @@ function Column({
   return (
     <section ref={setNodeRef} className={`column ${isOver ? 'over' : ''}`}>
       <h2>
-        {ORDER_STATUS_LABEL[status]} <small>{orders.length}</small>
+        {t(ORDER_STATUS_LABEL[status])} <small>{orders.length}</small>
       </h2>
       {orders.map((o) => (
         <Card key={o.id} order={o} data={data} draggable={draggable} />
       ))}
-      {!orders.length && <p className="muted">Нет нарядов</p>}
+      {!orders.length && <p className="muted">{t('Нет нарядов')}</p>}
     </section>
   )
 }
@@ -116,6 +117,9 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
       (archive || !['closed', 'cancelled'].includes(o.status)) &&
       (!overdue || o.is_overdue),
   )
+  const onShift = data.statuses.filter((s) =>
+    data.employees.some((e) => e.id === s.employee_id && e.on_shift),
+  )
   const rating = data.ratings.find((r) => r.employee_id === me.id)
   const [now] = useState(() => new Date())
   const start = new Date(now)
@@ -131,13 +135,14 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
               day: 'numeric',
               month: 'long',
             })}{' '}
-            · смена {start.getHours() === 8 ? '08:00–20:00' : '20:00–08:00'}
+            {t('· смена')}
+            {start.getHours() === 8 ? '08:00–20:00' : '20:00–08:00'}
           </p>
-          <h1>{isWorker ? 'Мои наряды' : 'Панель смены'}</h1>
+          <h1>{isWorker ? t('Мои наряды') : t('Панель смены')}</h1>
         </div>
         {canEdit && (
           <Link className="button" to="/new">
-            ＋ Создать наряд
+            {t('＋ Создать наряд')}
           </Link>
         )}
       </div>
@@ -145,23 +150,23 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
         <>
           <div className="stats">
             {[
-              ['Выдано за смену', shiftOrders.length],
+              [t('Выдано за смену'), shiftOrders.length],
               [
-                'Выполнено за смену',
+                t('Выполнено за смену'),
                 data.orders.filter(
                   (o) => o.submitted_at && new Date(o.submitted_at) >= start,
                 ).length,
               ],
               [
-                'Просрочено',
+                t('Просрочено'),
                 data.orders.filter(
                   (o) =>
                     o.is_overdue && !['closed', 'cancelled'].includes(o.status),
                 ).length,
               ],
               [
-                'Свободных людей',
-                data.statuses.filter((s) => s.status === 'free').length,
+                t('Свободных людей'),
+                onShift.filter((s) => s.status === 'free').length,
               ],
             ].map(([label, value]) => (
               <div className="panel" key={label}>
@@ -171,9 +176,12 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
             ))}
           </div>
           <details className="panel">
-            <summary>Люди на смене · {data.statuses.length}</summary>
+            <summary>
+              {t('Люди на смене ·')}
+              {onShift.length}
+            </summary>
             <div className="people">
-              {data.statuses.map((s) => (
+              {onShift.map((s) => (
                 <div key={s.employee_id} className="person">
                   <span className={`dot ${s.status}`} />
                   <div>
@@ -184,7 +192,9 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
                       }
                     </b>
                     <small>
-                      {liveLabels[s.status]} · в очереди {s.queue_count}
+                      {t(liveLabels[s.status])}
+                      {t('· в очереди')}
+                      {s.queue_count}
                     </small>
                   </div>
                 </div>
@@ -196,35 +206,42 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
       {isWorker && (
         <details className="panel">
           <summary>
-            Мой рейтинг:{' '}
+            {t('Мой рейтинг:')}{' '}
             {rating
               ? `${Number(rating.rating).toFixed(1)} / 100`
-              : 'пока нет закрытых нарядов'}
+              : t('пока нет закрытых нарядов')}
           </summary>
           <p>
-            За последние 30 дней: 35% качество + 25% в срок + 20% без возвратов
-            + 15% сложность − 5% штраф за необоснованные отказы.
+            {t(
+              'За последние 30 дней: 35% качество + 25% в срок + 20% без возвратов + 15% сложность − 5% штраф за необоснованные отказы.',
+            )}
           </p>
           {rating && (
             <p>
-              Закрыто: {rating.closed_count}; качество: {rating.quality}%; в
-              срок: {rating.on_time_rate}%; возвраты: {rating.rework_rate}%.
+              {t('Закрыто:')}
+              {rating.closed_count}
+              {t('; качество:')}
+              {rating.quality}
+              {t('%; в срок:')}
+              {rating.on_time_rate}
+              {t('%; возвраты:')}
+              {rating.rework_rate}%.
             </p>
           )}
         </details>
       )}
       <section className="filters panel">
         <label>
-          Участок
+          {t('Участок')}
           <select
-            aria-label="Участок"
+            aria-label={t('Участок')}
             value={site}
             onChange={(e) => {
               setSite(e.target.value)
               setEquipment('')
             }}
           >
-            <option value="">Все участки</option>
+            <option value="">{t('Все участки')}</option>
             {data.sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -233,13 +250,13 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
           </select>
         </label>
         <label>
-          Оборудование
+          {t('Оборудование')}
           <select
-            aria-label="Оборудование"
+            aria-label={t('Оборудование')}
             value={equipment}
             onChange={(e) => setEquipment(e.target.value)}
           >
-            <option value="">Всё оборудование</option>
+            <option value="">{t('Всё оборудование')}</option>
             {data.equipment
               .filter((e) => !site || e.site_id === Number(site))
               .map((e) => (
@@ -251,13 +268,13 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
         </label>
         {!isWorker && (
           <label>
-            Исполнитель
+            {t('Исполнитель')}
             <select
-              aria-label="Исполнитель"
+              aria-label={t('Исполнитель')}
               value={worker}
               onChange={(e) => setWorker(e.target.value)}
             >
-              <option value="">Все исполнители</option>
+              <option value="">{t('Все исполнители')}</option>
               {data.employees
                 .filter((e) => e.role === 'worker')
                 .map((e) => (
@@ -269,16 +286,16 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
           </label>
         )}
         <label>
-          Приоритет
+          {t('Приоритет')}
           <select
-            aria-label="Приоритет"
+            aria-label={t('Приоритет')}
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
           >
-            <option value="">Все приоритеты</option>
+            <option value="">{t('Все приоритеты')}</option>
             {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
-                {v}
+                {t(v)}
               </option>
             ))}
           </select>
@@ -289,7 +306,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
             checked={archive}
             onChange={(e) => setArchive(e.target.checked)}
           />
-          Архив
+          {t('Архив')}
         </label>
         <label className="check">
           <input
@@ -297,7 +314,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
             checked={overdue}
             onChange={(e) => setOverdue(e.target.checked)}
           />
-          Просроченные
+          {t('Просроченные')}
         </label>
       </section>
       {notice && (
@@ -325,7 +342,7 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
                   await changeStatus({ p_order_id: o.id, p_action: 'cancel' }),
                 )
             } else if (target === 'needs_rework' && o.status === 'submitted') {
-              const reason = window.prompt('Причина доработки')
+              const reason = window.prompt(t('Причина доработки'))
               if (reason?.trim())
                 setNotice(
                   await changeStatus({
@@ -336,7 +353,9 @@ export function Board({ data, me }: { data: AppData; me: Employee }) {
                 )
             } else
               setNotice(
-                'Этот переход выполняет исполнитель. Откройте карточку для доступных действий.',
+                t(
+                  'Этот переход выполняет исполнитель. Откройте карточку для доступных действий.',
+                ),
               )
           } catch (error) {
             setNotice(message(error))

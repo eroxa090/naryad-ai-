@@ -1,3 +1,4 @@
+import i18n from './i18n'
 import { useQuery } from '@tanstack/react-query'
 import type {
   Employee,
@@ -9,14 +10,14 @@ import type {
   Site,
   WorkerRatingRow,
 } from '../../shared/types'
-import { rows } from './supabase'
+import { rows, supabase } from './supabase'
 import { cached } from './offline'
 export function useData() {
   return useQuery({
     queryKey: ['data'],
     networkMode: 'always',
     queryFn: () =>
-      cached('data', async () => {
+      cached('data:active-30d', async () => {
         const [
           employees,
           statuses,
@@ -32,7 +33,7 @@ export function useData() {
           rows<Equipment>('equipment'),
           rows<FaultCode>('fault_codes'),
           rows<Material>('materials'),
-          rows<Order>('orders'),
+          loadOrders(false),
           rows<Site>('sites'),
           rows<WorkerRatingRow>('v_worker_rating'),
         ])
@@ -58,10 +59,33 @@ export const liveLabels = {
 }
 export const dateLabel = (value: string | null) =>
   value
-    ? new Date(value).toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+    ? new Date(value).toLocaleString(
+        i18n.language === 'kk' ? 'kk-KZ' : 'ru-RU',
+        {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        },
+      )
     : '—'
+
+// Filter on the server before pagination; old active orders remain visible.
+export async function loadOrders(all: boolean): Promise<Order[]> {
+  const cutoff = new Date(Date.now() - 30 * 86400000).toISOString()
+  const result: Order[] = []
+  for (let offset = 0; ; offset += 1000) {
+    let query = supabase
+      .from('orders')
+      .select('*')
+      .order('id', { ascending: false })
+    if (!all)
+      query = query.or(
+        `status.not.in.(closed,cancelled),and(status.eq.closed,closed_at.gte.${cutoff})`,
+      )
+    const { data, error } = await query.range(offset, offset + 999)
+    if (error) throw error
+    result.push(...(data as Order[]))
+    if (data.length < 1000) return result
+  }
+}
