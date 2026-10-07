@@ -183,7 +183,7 @@ function Workspace({ session }: { session: Session }) {
             payload.eventType === 'INSERT' &&
             payload.new.assignee_id === id
           ) {
-            setBanner(`Новый наряд №${payload.new.number}`)
+            setBanner(`${t('Новый наряд')} №${payload.new.number}`)
             try {
               const ctx = new AudioContext()
               const osc = ctx.createOscillator()

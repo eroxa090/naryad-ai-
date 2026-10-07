@@ -5,6 +5,7 @@ import { qrFromScan } from '../lib/qr'
 import { ORDER_STATUS_LABEL } from '../../shared/types'
 import { type AppData, dateLabel } from '../lib/data'
 import { message } from '../lib/supabase'
+import { t } from '../lib/i18n'
 export function EquipmentPage({
   data,
   canCreate,
@@ -44,7 +45,7 @@ export function EquipmentPage({
             setError('')
           } else
             setError(
-              'QR не найден в справочнике. Выберите оборудование вручную.',
+              t('QR не найден в справочнике. Выберите оборудование вручную.'),
             )
         },
         () => {},
@@ -64,10 +65,10 @@ export function EquipmentPage({
   const equipment = data.equipment.find((e) => e.id === selected)
   return (
     <>
-      <h1>Оборудование</h1>
-      <div className="actions"><Link className="button" to="/equipment/print">Печать QR</Link>
+      <h1>{t('Оборудование')}</h1>
+      <div className="actions"><Link className="button" to="/equipment/print">{t('Печать QR')}</Link>
         <button onClick={() => setScanning(!scanning)}>
-          {scanning ? 'Остановить камеру' : 'Сканировать QR'}
+          {scanning ? t('Остановить камеру') : t('Сканировать QR')}
         </button>
       </div>
       {scanning && <div id="qr-reader" />}
@@ -77,11 +78,11 @@ export function EquipmentPage({
         </p>
       )}
       <label>
-        Поиск по названию или инвентарному номеру
+        {t('Поиск по названию или инвентарному номеру')}
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Например, конвейер"
+          placeholder={t('Например, конвейер')}
         />
       </label>
       <div className="grid2">
@@ -111,14 +112,14 @@ export function EquipmentPage({
             <>
               <h2>{equipment.name}</h2>
               <p>
-                {equipment.type} · критичность {equipment.criticality}/3
+                {equipment.type} · {t('критичность')} {equipment.criticality}/3
               </p>
               {canCreate && (
                 <Link className="button" to={`/new?equipment=${equipment.id}`}>
-                  Создать наряд
+                  {t('Создать наряд')}
                 </Link>
               )}
-              <h3>История обслуживания</h3>
+              <h3>{t('История обслуживания')}</h3>
               {data.orders
                 .filter((o) => o.equipment_id === equipment.id)
                 .map((o) => (
@@ -131,13 +132,13 @@ export function EquipmentPage({
                       №{o.number} · {o.description}
                     </b>
                     <small>
-                      {dateLabel(o.created_at)} · {ORDER_STATUS_LABEL[o.status]}
+                      {dateLabel(o.created_at)} · {t(ORDER_STATUS_LABEL[o.status])}
                     </small>
                   </Link>
                 ))}
             </>
           ) : (
-            <p>Отсканируйте QR или выберите оборудование.</p>
+            <p>{t('Отсканируйте QR или выберите оборудование.')}</p>
           )}
         </section>
       </div>
