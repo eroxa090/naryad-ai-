@@ -24,6 +24,7 @@ import { OrderDetail } from './pages/OrderDetail'
 const EquipmentPage = lazy(() =>
   import('./pages/Equipment').then((m) => ({ default: m.EquipmentPage })),
 )
+const PrintQR = lazy(() => import('./pages/PrintQR').then(m => ({default:m.PrintQR})))
 const Reports = lazy(() =>
   import('./pages/Reports').then((m) => ({ default: m.Reports })),
 )
@@ -329,6 +330,7 @@ function Workspace({ session }: { session: Session }) {
         )}
         <Suspense fallback={<p>Загрузка экрана…</p>}>
           <Routes>
+            <Route path="/equipment/print" element={<PrintQR data={data.data}/>} />
             <Route
               path="/orders"
               element={<Board data={data.data} me={me} />}

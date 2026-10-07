@@ -59,7 +59,7 @@ export function EquipmentPage({
   return (
     <>
       <h1>Оборудование</h1>
-      <div className="actions">
+      <div className="actions"><Link className="button" to="/equipment/print">Печать QR</Link>
         <button onClick={() => setScanning(!scanning)}>
           {scanning ? 'Остановить камеру' : 'Сканировать QR'}
         </button>
