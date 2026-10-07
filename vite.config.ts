@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
           description: 'Выдача и контроль нарядов с ИИ',
           lang: 'ru',
           theme_color: '#ffffff',
-          background_color: '#f3f4f6',
+          background_color: '#e9eaec',
           display: 'standalone',
           start_url: '/',
           scope: '/',
