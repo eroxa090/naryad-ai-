@@ -9,8 +9,7 @@ export async function sendTelegram(chatId: number, text: string, buttons?: Inlin
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
-      text,
-      parse_mode: 'HTML',
+      text, // обычный текст без parse_mode: символы < > & из описаний не ломают отправку
       ...(buttons ? { reply_markup: { inline_keyboard: buttons } } : {}),
     }),
   })
