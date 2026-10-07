@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
@@ -5,6 +6,7 @@ import type {
   AiReview,
   Employee,
   OrderAction,
+  Order,
   OrderEvent,
   OrderMaterial,
   OrderPhoto,
@@ -24,10 +26,32 @@ import { api } from '../lib/api'
 import { Voice } from '../components/Voice'
 // Совпадают с уважительными причинами в worker_rating (supabase/migrations/001_init.sql):
 // остальные отказы снижают рейтинг исполнителя.
-const REJECT_REASONS = ['Нет материалов', 'Нет допуска', 'Занят аварийным', 'Не на смене', 'Нет инструмента']
+const REJECT_REASONS = [
+  'Нет материалов',
+  'Нет допуска',
+  'Занят аварийным',
+  'Не на смене',
+  'Нет инструмента',
+]
 export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
   const { id } = useParams()
-  const order = data.orders.find((o) => o.id === Number(id))
+  const current = data.orders.find((o) => o.id === Number(id))
+  const archived = useQuery({
+    queryKey: ['archived-order', id],
+    enabled: !current,
+    networkMode: 'always',
+    queryFn: () =>
+      cached(`archived-order:${id}`, async () => {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', id)
+          .single()
+        if (error) throw error
+        return data as Order
+      }),
+  })
+  const order = current || archived.data
   const [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false),
     [work, setWork] = useState(''),
@@ -78,11 +102,12 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
   if (!order)
     return (
       <p>
-        Наряд не найден. <Link to="/orders">Вернуться к списку</Link>
+        {t('Наряд не найден.')}
+        <Link to="/orders">{t('Вернуться к списку')}</Link>
       </p>
     )
   if (me.role === 'worker' && order.assignee_id !== me.id)
-    return <p>Этот наряд назначен другому исполнителю.</p>
+    return <p>{t('Этот наряд назначен другому исполнителю.')}</p>
   const master = ['master', 'admin'].includes(me.role),
     worker = me.role === 'worker' && order.assignee_id === me.id,
     review = detail.data?.reviews[0] || mockReview
@@ -92,7 +117,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
     setNotice('')
     try {
       const result = await fn()
-      setNotice(typeof result === 'string' ? result : 'Готово')
+      setNotice(typeof result === 'string' ? result : t('Готово'))
       await queryClient.invalidateQueries()
     } catch (e) {
       setNotice(message(e))
@@ -116,14 +141,13 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
       return
     }
     const reason = ['pause', 'rework'].includes(action)
-      ? window.prompt('Укажите причину')
+      ? window.prompt(t('Укажите причину'))
       : null
-    if (['pause', 'rework'].includes(action) && !reason?.trim())
-      return
+    if (['pause', 'rework'].includes(action) && !reason?.trim()) return
     if (
       ['close', 'cancel'].includes(action) &&
       !window.confirm(
-        `${action === 'close' ? 'Закрыть' : 'Отменить'} наряд №${order!.number}?`,
+        `${action === 'close' ? t('Закрыть') : t('Отменить')} наряд №${order!.number}?`,
       )
     )
       return
@@ -139,47 +163,56 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
   }
   const actions: [OrderAction, string][] = []
   if (worker) {
-    if (order.status === 'issued') actions.push(['accept', 'Принять'])
+    if (order.status === 'issued') actions.push(['accept', t('Принять')])
     if (['issued', 'accepted'].includes(order.status))
-      actions.push(['queue', 'В очередь'])
+      actions.push(['queue', t('В очередь')])
     if (['issued', 'accepted', 'queued'].includes(order.status))
-      actions.push(['reject', 'Отклонить'])
+      actions.push(['reject', t('Отклонить')])
     if (['accepted', 'queued', 'needs_rework'].includes(order.status))
-      actions.push(['start', 'Начать'])
-    if (order.status === 'in_progress') actions.push(['pause', 'Приостановить'])
-    if (order.status === 'paused') actions.push(['resume', 'Продолжить'])
+      actions.push(['start', t('Начать')])
+    if (order.status === 'in_progress')
+      actions.push(['pause', t('Приостановить')])
+    if (order.status === 'paused') actions.push(['resume', t('Продолжить')])
   }
   return (
     <>
       <Link className="back" to="/orders">
-        ← Все наряды
+        {t('← Все наряды')}
       </Link>
       <div className="page-title">
         <div>
-          <p className="eyebrow">НАРЯД № {order.number}</p>
+          <p className="eyebrow">
+            {t('НАРЯД №')}
+            {order.number}
+          </p>
           <h1>{order.description}</h1>
         </div>
         <span
           className={`badge ${order.priority === 'emergency' ? 'emergency' : order.status}`}
         >
-          {order.priority === 'emergency' ? 'Аварийный · ' : order.type === 'emergency' ? 'Внеплановый · ' : 'Плановый · '}
-          {ORDER_STATUS_LABEL[order.status]}
+          {order.priority === 'emergency'
+            ? t('Аварийный · ')
+            : order.type === 'emergency'
+              ? t('Внеплановый · ')
+              : t('Плановый · ')}
+          {t(ORDER_STATUS_LABEL[order.status])}
         </span>
       </div>
       <div className="grid2">
         <section className="panel">
-          <h2>Задание</h2>
+          <h2>{t('Задание')}</h2>
           <p>
             {data.sites.find((s) => s.id === order.site_id)?.name} /{' '}
             {data.equipment.find((e) => e.id === order.equipment_id)?.name}
           </p>
           <p>
-            Исполнитель:{' '}
+            {t('Исполнитель:')}{' '}
             {data.employees.find((e) => e.id === order.assignee_id)
-              ?.full_name || 'Не назначен'}
+              ?.full_name || t('Не назначен')}
           </p>
           <p className={order.is_overdue ? 'error' : ''}>
-            Срок: {dateLabel(order.deadline)}
+            {t('Срок:')}
+            {dateLabel(order.deadline)}
           </p>
           <div className="actions">
             {actions.map(([a, label]) => (
@@ -189,25 +222,35 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             ))}
             {rejecting && (
               <div className="panel">
-                <p>Причина отказа:</p>
+                <p>{t('Причина отказа:')}</p>
                 <div className="actions">
                   {REJECT_REASONS.map((r) => (
-                    <button key={r} className="secondary" disabled={busy} onClick={() => reject(r)}>
-                      {r}
+                    <button
+                      key={r}
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => reject(r)}
+                    >
+                      {t(r)}
                     </button>
                   ))}
                   <button
                     className="secondary"
                     disabled={busy}
                     onClick={() => {
-                      const other = window.prompt('Опишите причину отказа')?.trim()
+                      const other = window
+                        .prompt(t('Опишите причину отказа'))
+                        ?.trim()
                       if (other) reject(`Другое: ${other}`)
                     }}
                   >
-                    Другое
+                    {t('Другое')}
                   </button>
-                  <button className="danger" onClick={() => setRejecting(false)}>
-                    Отмена
+                  <button
+                    className="danger"
+                    onClick={() => setRejecting(false)}
+                  >
+                    {t('Отмена')}
                   </button>
                 </div>
               </div>
@@ -215,14 +258,14 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             {master && order.status === 'submitted' && (
               <>
                 <button disabled={busy} onClick={() => action('close')}>
-                  Закрыть наряд
+                  {t('Закрыть наряд')}
                 </button>
                 <button
                   className="secondary"
                   disabled={busy}
                   onClick={() => action('rework')}
                 >
-                  На доработку
+                  {t('На доработку')}
                 </button>
               </>
             )}
@@ -232,7 +275,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 disabled={busy}
                 onClick={() => action('cancel')}
               >
-                Отменить наряд
+                {t('Отменить наряд')}
               </button>
             )}
           </div>
@@ -254,9 +297,9 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 }}
               >
                 <label>
-                  Переназначить
+                  {t('Переназначить')}
                   <select
-                    aria-label="Переназначить"
+                    aria-label={t('Переназначить')}
                     name="assignee"
                     defaultValue={order.assignee_id || ''}
                     required
@@ -271,13 +314,13 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                   </select>
                 </label>
                 <button className="secondary" disabled={busy}>
-                  Назначить
+                  {t('Назначить')}
                 </button>
               </form>
             )}
         </section>
         <section className="panel">
-          <h2>Проверка качества</h2>
+          <h2>{t('Проверка качества')}</h2>
           {review ? (
             <>
               <strong className="score">
@@ -285,20 +328,25 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
               </strong>
               <p>
                 {review.verdict === 'needs_rework'
-                  ? 'Нужна доработка'
+                  ? t('Нужна доработка')
                   : review.verdict === 'accepted'
-                    ? 'Принято'
-                    : 'Принято с замечаниями'}
+                    ? t('Принято')
+                    : t('Принято с замечаниями')}
               </p>
               <p>{review.explanation}</p>
-              <h3>Обратная связь исполнителю</h3>
+              <h3>{t('Обратная связь исполнителю')}</h3>
               <p>{review.worker_feedback}</p>
               {review.checks.map((c, i) => (
                 <p key={i}>
                   {c.ok ? '✓' : '!'} {c.note}
                 </p>
               ))}
-              {review.master_comment && <p>Мастер: {review.master_comment}</p>}
+              {review.master_comment && (
+                <p>
+                  {t('Мастер:')}
+                  {review.master_comment}
+                </p>
+              )}
               {master && review.id > 0 && (
                 <form
                   onSubmit={(e) => {
@@ -318,9 +366,9 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                   }}
                 >
                   <label>
-                    Оценка мастера
+                    {t('Оценка мастера')}
                     <select
-                      aria-label="Оценка мастера"
+                      aria-label={t('Оценка мастера')}
                       name="score"
                       defaultValue={review.master_score ?? review.score}
                     >
@@ -330,15 +378,15 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                     </select>
                   </label>
                   <label>
-                    Объяснение
+                    {t('Объяснение')}
                     <input name="comment" required />
                   </label>
-                  <button disabled={busy}>Изменить оценку</button>
+                  <button disabled={busy}>{t('Изменить оценку')}</button>
                 </form>
               )}
             </>
           ) : (
-            <p>Оценка появится после исполнения и проверки.</p>
+            <p>{t('Оценка появится после исполнения и проверки.')}</p>
           )}
           {['submitted', 'needs_rework'].includes(order.status) &&
             (worker || master) && (
@@ -348,11 +396,11 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 onClick={() =>
                   void run(async () => {
                     setMockReview(await api.checkOrder({ order_id: order.id }))
-                    return 'Проверка выполнена'
+                    return t('Проверка выполнена')
                   })
                 }
               >
-                Проверить ИИ
+                {t('Проверить ИИ')}
               </button>
             )}
         </section>
@@ -366,7 +414,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
         <p role="alert" className="error">
           {message(detail.error)}{' '}
           <button onClick={() => void detail.refetch()}>
-            Повторить загрузку
+            {t('Повторить загрузку')}
           </button>
         </p>
       )}
@@ -377,14 +425,14 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             e.preventDefault()
             const f = new FormData(e.currentTarget)
             void run(async () => {
-              if (!work.trim()) throw new Error('Опишите выполненные работы')
+              if (!work.trim()) throw new Error(t('Опишите выполненные работы'))
               if (
                 order.type === 'emergency' &&
                 !files.length &&
                 !detail.data?.photos.some((p) => p.kind === 'after')
               )
                 throw new Error(
-                  'Для внепланового наряда обязательно фото после работ',
+                  t('Для внепланового наряда обязательно фото после работ'),
                 )
               if (
                 materials.some(
@@ -392,8 +440,10 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                     !m.material_id || !Number.isFinite(m.qty) || m.qty <= 0,
                 )
               )
-                throw new Error('Укажите материалы и положительное количество')
-              if (files.length > 5) throw new Error('Не больше 5 фотографий')
+                throw new Error(
+                  t('Укажите материалы и положительное количество'),
+                )
+              if (files.length > 5) throw new Error(t('Не больше 5 фотографий'))
               if (
                 !navigator.onLine ||
                 (me.auth_user_id &&
@@ -433,17 +483,17 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
               })
               try {
                 setMockReview(await api.checkOrder({ order_id: order.id }))
-                return 'Отчёт отправлен на проверку мастеру'
+                return t('Отчёт отправлен на проверку мастеру')
               } catch (e) {
                 return `Отчёт сохранён. ИИ недоступен: ${message(e)}. Повторите проверку кнопкой «Проверить ИИ».`
               }
             })
           }}
         >
-          <h2>Исполнено · отчёт о работах</h2>
+          <h2>{t('Исполнено · отчёт о работах')}</h2>
           <Voice onText={(text) => setWork(text)} />
           <label>
-            Выполненные работы
+            {t('Выполненные работы')}
             <textarea
               required
               value={work}
@@ -451,14 +501,14 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             />
           </label>
           <label>
-            Шифр
+            {t('Шифр')}
             <select
-              aria-label="Шифр"
+              aria-label={t('Шифр')}
               name="fault"
               required
               defaultValue={order.fault_code || ''}
             >
-              <option value="">Выберите шифр</option>
+              <option value="">{t('Выберите шифр')}</option>
               {data.faults.map((f) => (
                 <option key={f.code} value={f.code}>
                   {f.code} · {f.name}
@@ -466,11 +516,11 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
               ))}
             </select>
           </label>
-          <h3>Материалы</h3>
+          <h3>{t('Материалы')}</h3>
           {materials.map((m, i) => (
             <div className="material-row" key={i}>
               <select
-                aria-label="Материал"
+                aria-label={t('Материал')}
                 required
                 value={m.material_id || ''}
                 onChange={(e) =>
@@ -483,7 +533,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                   )
                 }
               >
-                <option value="">Материал</option>
+                <option value="">{t('Материал')}</option>
                 {data.materials.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name} ({m.unit})
@@ -491,7 +541,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                 ))}
               </select>
               <input
-                aria-label="Количество"
+                aria-label={t('Количество')}
                 type="number"
                 min="0.001"
                 step="any"
@@ -512,7 +562,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
                   setMaterials(materials.filter((_, j) => j !== i))
                 }
               >
-                Убрать
+                {t('Убрать')}
               </button>
             </div>
           ))}
@@ -523,10 +573,11 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
               setMaterials([...materials, { material_id: 0, qty: 1 }])
             }
           >
-            ＋ Материал
+            {t('＋ Материал')}
           </button>
           <label>
-            Фото после работ {order.type === 'emergency' ? '(обязательно)' : ''}
+            {t('Фото после работ')}
+            {order.type === 'emergency' ? t('(обязательно)') : ''}
             <input
               type="file"
               accept="image/*"
@@ -535,19 +586,22 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
             />
           </label>
           <label>
-            Комментарий
+            {t('Комментарий')}
             <textarea name="comment" />
           </label>
           <button disabled={busy}>
-            {busy ? 'Отправляем…' : 'Исполнено — отправить отчёт'}
+            {busy ? t('Отправляем…') : t('Исполнено — отправить отчёт')}
           </button>
         </form>
       )}
       {order.work_done && (
         <section className="panel">
-          <h2>Выполненные работы</h2>
+          <h2>{t('Выполненные работы')}</h2>
           <p>{order.work_done}</p>
-          <p>Шифр: {order.fault_code}</p>
+          <p>
+            {t('Шифр:')}
+            {order.fault_code}
+          </p>
           <p>{order.comment}</p>
           {detail.data?.materials.map((m) => (
             <p key={m.id}>
@@ -558,18 +612,18 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
         </section>
       )}
       <section className="panel">
-        <h2>Фотографии</h2>
+        <h2>{t('Фотографии')}</h2>
         <div className="photos">
           {detail.data?.photos.map((p) => (
             <figure key={p.id}>
               <a href={p.url} target="_blank" rel="noreferrer">
                 <img
                   src={p.url}
-                  alt={p.kind === 'before' ? 'До работ' : 'После работ'}
+                  alt={p.kind === 'before' ? t('До работ') : t('После работ')}
                 />
               </a>
               <figcaption>
-                {p.kind === 'before' ? 'До' : 'После'} · EXIF:{' '}
+                {p.kind === 'before' ? t('До') : t('После')} · EXIF:{' '}
                 {dateLabel(p.taken_at)}
               </figcaption>
             </figure>
@@ -577,7 +631,7 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
         </div>
         {master && !['closed', 'cancelled'].includes(order.status) && (
           <label>
-            Добавить фото до работ
+            {t('Добавить фото до работ')}
             <input
               type="file"
               accept="image/*"
@@ -593,23 +647,23 @@ export function OrderDetail({ data, me }: { data: AppData; me: Employee }) {
         )}
       </section>
       <section className="panel">
-        <h2>Хронология</h2>
+        <h2>{t('Хронология')}</h2>
         <ol className="timeline">
           {detail.data?.events.map((e) => (
             <li key={e.id}>
               <small>
                 {dateLabel(e.created_at)} ·{' '}
                 {data.employees.find((p) => p.id === e.actor_id)?.full_name ||
-                  'Система'}
+                  t('Система')}
               </small>
               <p>
                 {e.to_status
-                  ? ORDER_STATUS_LABEL[e.to_status]
+                  ? t(ORDER_STATUS_LABEL[e.to_status])
                   : e.action === 'create'
-                    ? 'Создан'
+                    ? t('Создан')
                     : e.action === 'ai_review'
-                      ? 'Проверка ИИ'
-                      : 'Обновление наряда'}
+                      ? t('Проверка ИИ')
+                      : t('Обновление наряда')}
                 {e.reason
                   ? ` · ${e.reason}`
                   : e.comment
