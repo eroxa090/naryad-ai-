@@ -820,3 +820,5 @@ input[type='file']::file-selector-button {
   nav { grid-auto-columns: minmax(0, 1fr); }
   nav a, nav button { white-space: normal; line-height: 1.15; font-size: 0.72rem; overflow-wrap: normal; padding: 6px 1px; letter-spacing: -0.01em; }
 }
+.voice { display: grid; gap: 8px; margin-bottom: 8px; }
+.voice .heard { font-size: 1.1rem; font-weight: 700; background: #f1f1f1; border-left: 6px solid var(--primary); padding: 10px 12px; border-radius: 8px; margin: 0; }

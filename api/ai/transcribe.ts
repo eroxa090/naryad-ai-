@@ -4,15 +4,14 @@ import Groq, { toFile } from 'groq-sdk'
 import type { TranscribeReq, TranscribeRes } from '../../shared/types.js'
 import { onlyPost, requireEmployee } from '../_lib/auth.js'
 
-const DEMO_TEXT = 'Насос Н-2 на обогатительной фабрике, течёт масло, срочно'
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!onlyPost(req, res)) return
   if (!(await requireEmployee(req, res))) return
   const { audio_base64, mime } = (req.body ?? {}) as TranscribeReq
   if (!audio_base64) return res.status(400).json({ error: 'Нет аудио' })
 
-  if (!process.env.GROQ_API_KEY) return res.status(200).json({ text: DEMO_TEXT } satisfies TranscribeRes)
+  // Без ключа не подставляем выдуманный текст: фронт сообщит, что серверное распознавание не подключено.
+  if (!process.env.GROQ_API_KEY) return res.status(503).json({ error: 'Распознавание речи на сервере не подключено' })
 
   const ext = mime?.includes('mp4') ? 'mp4' : mime?.includes('ogg') ? 'ogg' : 'webm'
   const file = await toFile(Buffer.from(audio_base64, 'base64'), `voice.${ext}`, { type: mime || 'audio/webm' })

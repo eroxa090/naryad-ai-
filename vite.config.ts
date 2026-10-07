@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'prompt',
+        // Новая версия ставится сама: в интерфейсе нет кнопки «Обновить», иначе телефоны застревали на старой сборке.
+        registerType: 'autoUpdate',
         manifest: {
           name: 'НарядAI',
           short_name: 'НарядAI',

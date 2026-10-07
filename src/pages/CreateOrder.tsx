@@ -1,3 +1,4 @@
+import { t } from '../lib/i18n'
 import { useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Employee, OrderType, Priority, SuggestWorkerRes } from '../../shared/types'
@@ -23,7 +24,8 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
     [candidates, setCandidates] = useState<SuggestWorkerRes['candidates']>([]),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [created, setCreated] = useState<number | null>(null)
+    [created, setCreated] = useState<number | null>(null),
+    [voiceHint, setVoiceHint] = useState('')
   const navigate = useNavigate()
   const suggestionRequest = useRef(0)
   const [deadline] = useState(() => {
@@ -110,7 +112,16 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
       >
         <Voice
           onText={async (text) => {
+            setVoiceHint('')
             const parsed = await api.parseOrder({ text })
+            const misses = [
+              !parsed.equipment_id && t('оборудование'),
+              !parsed.fault_code && t('что случилось'),
+            ].filter(Boolean)
+            if (misses.length)
+              setVoiceHint(
+                `${t('Не понял')}: ${misses.join(', ')}. ${t('Скажите, например: «Насос Н-2, течёт масло, срочно» — или выберите вручную.')}`,
+              )
             setDescription(parsed.description)
             setPriority(parsed.priority)
             setType(parsed.type)
@@ -125,6 +136,7 @@ export function CreateOrder({ data, me }: { data: AppData; me: Employee }) {
             }
           }}
         />
+        {voiceHint && <p className="notice">⚠️ {voiceHint}</p>}
         <label>
           Задача
           <textarea
