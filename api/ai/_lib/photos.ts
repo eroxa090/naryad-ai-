@@ -25,7 +25,9 @@ export function hashDistance(a: string, b: string): number {
   return n
 }
 
-export const SAME_PHOTO = 6 // расстояние Хэмминга, ниже которого считаем фото одинаковыми
+// Расстояние Хэмминга dHash: повторно загруженное (пересжатое) фото даёт 0–2, честные «до/после»
+// одного узла с того же ракурса — около 10+. Порог 3 ловит подмену и не наказывает честных рабочих.
+export const SAME_PHOTO = 3
 
 // Уменьшенная копия для LLM: дешевле по токенам.
 export const forLlm = (img: Buffer) =>
