@@ -1,4 +1,4 @@
-// Общие типы НарядAI. Владелец: Человек 1. Изменения только по договорённости (см. AGENTS.md).
+// Общие типы НарядAI: используются фронтендом и API.
 // Файл без импортов: его используют и фронт (src/), и сервер (api/).
 
 export const ORDER_STATUSES = [
@@ -199,7 +199,7 @@ export interface ChangeStatusArgs {
   p_payload?: Record<string, unknown> // reason, comment, assignee_id, priority, SubmitPayload…
 }
 
-// ---------- API ИИ (Человек 3) ----------
+// ---------- API ИИ ----------
 export interface TranscribeReq { audio_base64: string; mime: string }
 export interface TranscribeRes { text: string }
 
