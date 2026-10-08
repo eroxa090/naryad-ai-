@@ -293,7 +293,7 @@ footer { text-align: center; color: var(--ink-2); font-size: 0.85rem; padding: 0
 .insights .notice { background: var(--bg); margin: 0; }
 .insights h3 { margin-bottom: 4px; }
 .risk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 12px; }
-.risk-grid button { min-height: 72px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; text-align: left; font-weight: 700; color: var(--ink); }
+.risk-grid button { border-radius: var(--radius); min-height: 72px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; text-align: left; font-weight: 700; color: var(--ink); }
 .risk-grid button small { color: inherit; font-weight: 700; font-variant-numeric: tabular-nums; }
 .risk-low { background: #e3f4ea; color: #14532d !important; }
 .risk-medium { background: #fff1c2; color: #6b3a0b !important; }
